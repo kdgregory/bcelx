@@ -32,8 +32,7 @@ import net.sf.kdgcommons.lang.ClassUtil;
 import net.sf.kdgcommons.lang.UnreachableCodeException;
 
 import com.kdgregory.bcelx.classfile.Annotation;
-import com.kdgregory.bcelx.classfile.Annotation.ParamType;
-import com.kdgregory.bcelx.classfile.Annotation.ParamValue;
+import com.kdgregory.bcelx.classfile.Annotation.*;
 
 
 /**
@@ -194,17 +193,17 @@ public class AnnotationParser
             case 'Z':
                 int baseIndex = in.readUnsignedShort();
                 ConstantObject baseValue = (ConstantObject)cp.getConstant(baseIndex);
-                return new ParamValue(ParamType.NUMBER, baseValue.getConstantValue(cp));
+                return new ScalarValue(ParamType.NUMBER, baseValue.getConstantValue(cp));
             case 's':
                 int stringIndex = in.readUnsignedShort();
-                return new ParamValue(ParamType.STRING, stringConstant(stringIndex));
+                return new ScalarValue(ParamType.STRING, stringConstant(stringIndex));
             case 'c':
                 int classIndex = in.readUnsignedShort();
-                return new ParamValue(typeNameConstant(classIndex));
+                return new ClassValue(typeNameConstant(classIndex));
             case 'e':
                 int enumTypeIndex = in.readUnsignedShort();
                 int enumValueIndex = in.readUnsignedShort();
-                return new ParamValue(typeNameConstant(enumTypeIndex), stringConstant(enumValueIndex));
+                return new EnumValue(typeNameConstant(enumTypeIndex), stringConstant(enumValueIndex));
             case '[':
                 int arraySize = in.readUnsignedShort();
                 List<ParamValue> arrayValues = new ArrayList<ParamValue>(arraySize);
@@ -212,7 +211,7 @@ public class AnnotationParser
                 {
                     arrayValues.add(parseAnnotationValue(in));
                 }
-                return new ParamValue(arrayValues);
+                return new ArrayValue(arrayValues);
             default :
                 throw new UnreachableCodeException("invalid value tag: " + tag);
         }

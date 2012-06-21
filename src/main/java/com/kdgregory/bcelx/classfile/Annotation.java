@@ -134,6 +134,10 @@ public class Annotation
     }
 
 
+//----------------------------------------------------------------------------
+//  Supporting Classes
+//----------------------------------------------------------------------------
+
     /**
      *  The various types that a parameter value can take. This may be used to
      *  control how calling code processes a value.
@@ -158,64 +162,23 @@ public class Annotation
 
 
     /**
-     *  Holds a single parameter value. There are multiple ways that you can
-     *  retrieve this value.
+     *  Holds a single parameter value. The caller can either retrieve the actual
+     *  value, via one of the <code>getAsXXX()</code> methods, or get the string
+     *  representation, which should match the value as it appeared in source.
      */
-    public static class ParamValue
+    public static abstract class ParamValue
     {
         private ParamType type;
-        private Object value;
-        private String className;   // used for Class and Enum values
-        private String enumValue;
-        private List<ParamValue> arrayValues;
 
-        private String stringValue; // created by toString()
-
-
-        /**
-         *  Constructor for scalar values.
-         */
-        public ParamValue(ParamType type, Object value)
+        protected ParamValue(ParamType type)
         {
             this.type = type;
-            this.value = value;
-        }
-
-
-        /**
-         *  Constructor for class values.
-         */
-        public ParamValue(String className)
-        {
-            this.type = ParamType.CLASS;
-            this.className = className;
-        }
-
-
-        /**
-         *  Constructor for enum values.
-         */
-        public ParamValue(String enumClassname, String enumValue)
-        {
-            this.type = ParamType.ENUM;
-            this.className = enumClassname;
-            this.enumValue = enumValue;
-        }
-
-
-        /**
-         *  Constructor for array values.
-         */
-        public ParamValue(List<ParamValue> arrayValues)
-        {
-            this.type = ParamType.ARRAY;
-            this.arrayValues = arrayValues;
         }
 
 
         /**
          *  Returns the type of this parameter. This may be used by calling code
-         *  to call a specific <code>getXXX</code> method.
+         *  to decide on a specific <code>getAsXXX()</code> method.
          */
         public ParamType getType()
         {
@@ -231,37 +194,7 @@ public class Annotation
         @Override
         public String toString()
         {
-            if (stringValue == null)
-            {
-                switch (type)
-                {
-                    case STRING :
-                        stringValue = "\"" + value + "\"";
-                        break;
-                    case NUMBER :
-                        stringValue = String.valueOf(value);
-                        break;
-                    case CLASS :
-                        stringValue = className.replace('$', '.') + ".class";
-                        break;
-                    case ENUM :
-                        stringValue = className.replace('$', '.') + "." + enumValue;
-                        break;
-                    case ARRAY :
-                        StringBuilder sb = new StringBuilder(128).append("{");
-                        for (ParamValue arrayValue : arrayValues)
-                        {
-                            StringBuilderUtil.appendUnless(sb, "{", ", ");
-                            sb.append(arrayValue.toString());
-                        }
-                        sb.append("}");
-                        stringValue = sb.toString();
-                        break;
-                    default :
-                        throw new UnreachableCodeException("unsupported value type: " + type);
-                }
-            }
-            return stringValue;
+            throw new UnreachableCodeException("this method is defined by subclass");
         }
 
 
@@ -270,7 +203,7 @@ public class Annotation
          */
         public Object getScalar()
         {
-            return value;
+            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -283,7 +216,7 @@ public class Annotation
         public Class<?> getKlass()
         throws ClassNotFoundException
         {
-            return Class.forName(className);
+            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -296,18 +229,7 @@ public class Annotation
         public Enum<?> getEnum()
         throws ClassNotFoundException
         {
-            Class<?> enumKlass = getKlass();
-
-            // I can't figure my way around the parameter bounds of Enum.valueOf(),
-            // so this seems the easiest way to make this work
-            for (Object value : enumKlass.getEnumConstants())
-            {
-                Enum<?> ee = (Enum<?>)value;
-                if (ee.name().equals(enumValue))
-                    return ee;
-            }
-
-            return null;
+            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -320,17 +242,7 @@ public class Annotation
          */
         public List<ParamValue> getArray()
         {
-            // need to do a deep copy so that we don't expose mutable state
-            // for multi-dimensional arrays
-            List<ParamValue> ret = new ArrayList<ParamValue>(arrayValues.size());
-            for (ParamValue arrayValue : arrayValues)
-            {
-                if (arrayValue.getType() == ParamType.ARRAY)
-                    ret.add(new ParamValue(arrayValue.getArray()));
-                else
-                    ret.add(arrayValue);
-            }
-            return ret;
+            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -342,29 +254,192 @@ public class Annotation
         public List<Object> getArrayAsObjects()
         throws ClassNotFoundException
         {
-            List<Object> ret = new ArrayList<Object>(arrayValues.size());
-            for (ParamValue arrayValue : arrayValues)
+            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
+        }
+    }
+
+
+    public static class ScalarValue
+    extends ParamValue
+    {
+        private Object value;
+        private String stringValue;
+
+        public ScalarValue(ParamType type, Object value)
+        {
+            super(type);
+            this.value = value;
+        }
+
+        @Override
+        public String toString()
+        {
+            if (stringValue == null)
             {
-                switch (arrayValue.getType())
+                if (getType() == ParamType.STRING)
+                    stringValue = "\"" + value + "\"";
+                else
+                    stringValue = String.valueOf(value);
+            }
+            return stringValue;
+        }
+
+        @Override
+        public Object getScalar()
+        {
+            return value;
+        }
+    }
+
+
+    public static class ClassValue
+    extends ParamValue
+    {
+        private String className;
+        private String stringValue;
+
+        public ClassValue(String className)
+        {
+            super(ParamType.CLASS);
+            this.className = className;
+        }
+
+        @Override
+        public String toString()
+        {
+            if (stringValue == null)
+            {
+                stringValue = className.replace('$', '.') + ".class";
+            }
+            return stringValue;
+        }
+
+        @Override
+        public Class<?> getKlass()
+        throws ClassNotFoundException
+        {
+            return Class.forName(className);
+        }
+    }
+
+
+    public static class EnumValue
+    extends ParamValue
+    {
+        private String enumClassName;
+        private String enumValue;
+        private String stringValue;
+
+        public EnumValue(String enumClassName, String enumValue)
+        {
+            super(ParamType.ENUM);
+            this.enumClassName = enumClassName;
+            this.enumValue = enumValue;
+        }
+
+        @Override
+        public String toString()
+        {
+            if (stringValue == null)
+            {
+                stringValue = enumClassName.replace('$', '.') + "." + enumValue;
+            }
+            return stringValue;
+        }
+
+        @Override
+        public Enum<?> getEnum()
+        throws ClassNotFoundException
+        {
+            Class<?> enumKlass = Class.forName(enumClassName);
+
+            // I can't figure my way around the parameter bounds of Enum.valueOf(),
+            // so this seems the easiest way to make this work
+            for (Object value : enumKlass.getEnumConstants())
+            {
+                Enum<?> ee = (Enum<?>)value;
+                if (ee.name().equals(enumValue))
+                    return ee;
+            }
+
+            return null;
+        }
+    }
+
+
+    public static class ArrayValue
+    extends ParamValue
+    {
+        private List<ParamValue> values;
+        private String stringValue;
+
+        public ArrayValue(List<ParamValue> values)
+        {
+            super(ParamType.ARRAY);
+            this.values = values;
+        }
+
+        @Override
+        public String toString()
+        {
+            if (stringValue == null)
+            {
+                StringBuilder sb = new StringBuilder(128).append("{");
+                for (ParamValue arrayValue : values)
+                {
+                    StringBuilderUtil.appendUnless(sb, "{", ", ");
+                    sb.append(arrayValue.toString());
+                }
+                sb.append("}");
+                stringValue = sb.toString();
+            }
+            return stringValue;
+        }
+
+        @Override
+        public List<ParamValue> getArray()
+        {
+            // need to do a deep copy so that we don't expose mutable state
+            // for multi-dimensional arrays
+            List<ParamValue> ret = new ArrayList<ParamValue>(values.size());
+            for (ParamValue value : values)
+            {
+                if (value.getType() == ParamType.ARRAY)
+                    ret.add(new ArrayValue(value.getArray()));
+                else
+                    ret.add(value);
+            }
+            return ret;
+        }
+
+        @Override
+        public List<Object> getArrayAsObjects()
+        throws ClassNotFoundException
+        {
+            List<Object> ret = new ArrayList<Object>(values.size());
+            for (ParamValue value : values)
+            {
+                switch (value.getType())
                 {
                     case STRING :
                     case NUMBER :
-                        ret.add(arrayValue.getScalar());
+                        ret.add(value.getScalar());
                         break;
                     case CLASS :
-                        ret.add(arrayValue.getKlass());
+                        ret.add(value.getKlass());
                         break;
                     case ENUM :
-                        ret.add(arrayValue.getEnum());
+                        ret.add(value.getEnum());
                         break;
                     case ARRAY :
-                        ret.add(arrayValue.getArrayAsObjects());
+                        ret.add(value.getArrayAsObjects());
                         break;
                     default :
-                        throw new UnreachableCodeException("unexpected param type: " + arrayValue.getType());
+                        throw new UnreachableCodeException("unexpected param type: " + value.getType());
                 }
             }
             return ret;
         }
+
     }
 }
