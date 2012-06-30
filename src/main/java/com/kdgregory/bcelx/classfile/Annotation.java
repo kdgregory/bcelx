@@ -16,6 +16,7 @@ package com.kdgregory.bcelx.classfile;
 
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,7 +51,7 @@ public class Annotation
     {
         String simpleName = StringUtil.extractRightOfLast(fqClassname, ".");
         this.annoName = "@" + simpleName.replace('$', '.');
-        this.className = fqClassname;
+        this.className = fqClassname.replace('$', '.');
         this.policy = policy;
     }
 
@@ -99,6 +100,16 @@ public class Annotation
     public Map<String,ParamValue> getParams()
     {
         return Collections.unmodifiableMap(params);
+    }
+
+
+    /**
+     *  Returns a single parameter value by name, <code>null</code> if that
+     *  parameter does not exist.
+     */
+    public ParamValue getParam(String name)
+    {
+        return params.get(name);
     }
 
 
@@ -190,12 +201,40 @@ public class Annotation
          *  Returns a string representation of this parameter. The format of this
          *  string follows the form that you'd declare the parameter in a source
          *  file. Specifically:
+         *  <ul>
+         *  <li> Strings are delimited by quotes: "foo"
+         *  <li> Numeric values are not delimited: 12
+         *  <li> Classnames are fully qualified, with inner classes using a dot
+         *       rather than a dollar-sign: java.util.Map.Entry
+         *  <li> Enums use a fully qualified classname, followed by a dot and the
+         *       enum values: com.example.MyEnum.FOO
+         *  <li> Arrays are bracketed and comma-separated: {"foo","bar"}
+         *  </ul>
          */
         @Override
         public String toString()
         {
             throw new UnreachableCodeException("this method is defined by subclass");
         }
+
+
+        /**
+         *  Compares the passed value to this enum's value:
+         *  <ul>
+         *  <li> String: passed value must be a <code>String</code>
+         *  <li> Number: passed value must be a numeric wrapper type (eg:
+         *       <code>Integer</code>); note that class is part of the
+         *       <code>equals()</code> contract for wrappers
+         *  <li> Class: passed value may be a class instance (this will
+         *       load the class if it isn't already) or a <code>String</code>
+         *       in the format of {@link #toString} (which won't)
+         *  <li> Enum: passed value may be an enum instance (which will
+         *       load the enum class if it isn't already), or a <code>String</code>
+         *       in the format of {@link #toString} (which won't)
+         *  <li> Array: passed value may be an object array or <code>List</code>
+         *  </ul>
+         */
+        public abstract boolean valueEquals(Object obj);
 
 
         /**
@@ -285,6 +324,12 @@ public class Annotation
         }
 
         @Override
+        public boolean valueEquals(Object obj)
+        {
+            return getScalar().equals(obj);
+        }
+
+        @Override
         public Object getScalar()
         {
             return value;
@@ -312,6 +357,24 @@ public class Annotation
                 stringValue = className.replace('$', '.') + ".class";
             }
             return stringValue;
+        }
+
+        @Override
+        public boolean valueEquals(Object obj)
+        {
+            try
+            {
+                if (obj instanceof Class)
+                    return getKlass().equals(obj);
+                else if (obj instanceof String)
+                    return toString().equals(obj);
+                else
+                    return false;
+            }
+            catch (ClassNotFoundException ex)
+            {
+                return false;
+            }
         }
 
         @Override
@@ -345,6 +408,24 @@ public class Annotation
                 stringValue = enumClassName.replace('$', '.') + "." + enumValue;
             }
             return stringValue;
+        }
+
+        @Override
+        public boolean valueEquals(Object obj)
+        {
+            try
+            {
+                if (obj instanceof Enum)
+                    return getEnum().equals(obj);
+                else if (obj instanceof String)
+                    return toString().equals(obj);
+                else
+                    return false;
+            }
+            catch (ClassNotFoundException ex)
+            {
+                return false;
+            }
         }
 
         @Override
@@ -387,13 +468,32 @@ public class Annotation
                 StringBuilder sb = new StringBuilder(128).append("{");
                 for (ParamValue arrayValue : values)
                 {
-                    StringBuilderUtil.appendUnless(sb, "{", ", ");
+                    StringBuilderUtil.appendUnless(sb, "{", ",");
                     sb.append(arrayValue.toString());
                 }
                 sb.append("}");
                 stringValue = sb.toString();
             }
             return stringValue;
+        }
+
+        @Override
+        public boolean valueEquals(Object obj)
+        {
+            if (obj instanceof Object[])
+                obj = Arrays.asList((Object[])obj);
+
+            if (!(obj instanceof List))
+                return false;
+
+            try
+            {
+                return getArrayAsObjects().equals(obj);
+            }
+            catch (ClassNotFoundException e)
+            {
+                return false;
+            }
         }
 
         @Override

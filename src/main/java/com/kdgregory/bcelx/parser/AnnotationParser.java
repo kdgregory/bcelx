@@ -19,20 +19,30 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.bcel.classfile.Attribute;
 import org.apache.bcel.classfile.ConstantObject;
 import org.apache.bcel.classfile.ConstantPool;
 import org.apache.bcel.classfile.ConstantUtf8;
 import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.Method;
 import org.apache.bcel.classfile.Unknown;
 
 import net.sf.kdgcommons.lang.ClassUtil;
 import net.sf.kdgcommons.lang.UnreachableCodeException;
 
 import com.kdgregory.bcelx.classfile.Annotation;
-import com.kdgregory.bcelx.classfile.Annotation.*;
+import com.kdgregory.bcelx.classfile.Annotation.ArrayValue;
+import com.kdgregory.bcelx.classfile.Annotation.ClassValue;
+import com.kdgregory.bcelx.classfile.Annotation.EnumValue;
+import com.kdgregory.bcelx.classfile.Annotation.ParamType;
+import com.kdgregory.bcelx.classfile.Annotation.ParamValue;
+import com.kdgregory.bcelx.classfile.Annotation.ScalarValue;
 
 
 /**
@@ -50,16 +60,27 @@ public class AnnotationParser
     private JavaClass classFile;
     private ConstantPool cp;
 
-
     // these will be lazily instantiated as needed
-    List<Annotation> classVisibleAnnotations;
-    List<Annotation> classInvisibleAnnotations;
+    private List<Annotation> classVisibleAnnotations;
+    private List<Annotation> classInvisibleAnnotations;
+    private Map<Method,Map<String,Annotation>> methodAnnotations;
 
 
     public AnnotationParser(JavaClass classFile)
     {
         this.classFile = classFile;
         this.cp = classFile.getConstantPool();
+    }
+
+
+    /**
+     *  Returns the parsed class object. This is a convenience for callers who may
+     *  be passed just the parser instance (because whoever created the parser can
+     *  simply hold onto the parsed class).
+     */
+    public JavaClass getParsedClass()
+    {
+        return classFile;
     }
 
 
@@ -92,6 +113,75 @@ public class AnnotationParser
                                         RetentionPolicy.CLASS);
         }
         return classInvisibleAnnotations;
+    }
+
+
+    /**
+     *  Returns a list of the methods that are marked with the specified
+     *  runtime-visible annotation class, an empty list if there aren't any.
+     */
+    public List<Method> getAnnotatedMethods(String className)
+    {
+        List<Method> result = new ArrayList<Method>();
+
+        lazyBuildMethodAnnotationMap();
+        for (Map.Entry<Method,Map<String,Annotation>> annos : methodAnnotations.entrySet())
+        {
+            if (annos.getValue().containsKey(className))
+                result.add(annos.getKey());
+        }
+
+        return result;
+    }
+
+
+    /**
+     *  Returns a list of the methods that are marked with the specified runtime
+     *  visible annotation, and whose parameters match the name-value pairs passed
+     *  in the provided map. Annotation parameters not included in the map are
+     *  considered matched, and an empty map matches all parameters.
+     *  <p>
+     *  All parameter values are passed as object instances. Numeric values must be
+     *  passed as the appropriate wrapper type. Array-valued parameters may be passed
+     *  as either an array or a <code>List</code>.
+     */
+    public List<Method> getAnnotatedMethods(String className, Map<String,Object> filter)
+    {
+        List<Method> result = new ArrayList<Method>();
+
+        for (Method method : getAnnotatedMethods(className))
+        {
+            inner:
+            {
+                Annotation anno = methodAnnotations.get(method).get(className);
+                for (Map.Entry<String,Object> param : filter.entrySet())
+                {
+                    String paramName = param.getKey();
+                    Object paramValue = param.getValue();
+                    ParamValue annoParam = anno.getParam(paramName);
+                    if ((annoParam == null) || !annoParam.valueEquals(paramValue))
+                        break inner;
+                }
+                result.add(method);
+            }
+        }
+
+        return result;
+    }
+
+
+    /**
+     *  Returns all runtime-visible annotations for the passed method. Will return
+     *  an empty list if there are no annotations, or if the method does not belong
+     *  to the class associated with this parser.
+     */
+    public List<Annotation> getMethodAnnotations(Method method)
+    {
+        lazyBuildMethodAnnotationMap();
+        Map<String,Annotation> annos = methodAnnotations.get(method);
+        return (annos == null)
+             ? Collections.<Annotation>emptyList()
+             : new ArrayList<Annotation>(annos.values());
     }
 
 
@@ -214,6 +304,32 @@ public class AnnotationParser
                 return new ArrayValue(arrayValues);
             default :
                 throw new UnreachableCodeException("invalid value tag: " + tag);
+        }
+    }
+
+
+    /**
+     *  Builds the maps that associated annotations to methods. This is intended
+     *  to happen lazily.
+     */
+    private void lazyBuildMethodAnnotationMap()
+    {
+        if (methodAnnotations != null)
+            return;
+
+        methodAnnotations = new IdentityHashMap<Method,Map<String,Annotation>>();
+        for (Method method : classFile.getMethods())
+        {
+            Map<String,Annotation> annoMap = new HashMap<String,Annotation>();
+            methodAnnotations.put(method, annoMap);
+
+            List<Annotation> annotations = parseAnnotationsFromAttributes(
+                                            method.getAttributes(),
+                                            RetentionPolicy.RUNTIME);
+            for (Annotation anno : annotations)
+            {
+                annoMap.put(anno.getClassName(), anno);
+            }
         }
     }
 }
