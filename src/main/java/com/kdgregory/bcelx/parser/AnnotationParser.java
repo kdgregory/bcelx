@@ -57,12 +57,17 @@ public class AnnotationParser
     private final static String ATTR_ANNOTATION_RUNTIME = "RuntimeVisibleAnnotations";
     private final static String ATTR_ANNOTATION_CLASS   = "RuntimeInvisibleAnnotations";
 
+
+//----------------------------------------------------------------------------
+//  Instance variables and constructors
+//----------------------------------------------------------------------------
+
+    // initialized by ctor
     private JavaClass classFile;
     private ConstantPool cp;
 
-    // these will be lazily instantiated as needed
-    private List<Annotation> classVisibleAnnotations;
-    private List<Annotation> classInvisibleAnnotations;
+    // lazily initialized
+    private List<Annotation> classAnnotations;
     private Map<Method,Map<String,Annotation>> methodAnnotations;
 
 
@@ -72,6 +77,10 @@ public class AnnotationParser
         this.cp = classFile.getConstantPool();
     }
 
+
+//----------------------------------------------------------------------------
+//  Public methods
+//----------------------------------------------------------------------------
 
     /**
      *  Returns the parsed class object. This is a convenience for callers who may
@@ -90,13 +99,14 @@ public class AnnotationParser
      */
     public List<Annotation> getClassVisibleAnnotations()
     {
-        if (classVisibleAnnotations == null)
+        lazyBuildClassAnnotationList();
+        List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
+        for (Annotation anno : classAnnotations)
         {
-            classVisibleAnnotations = parseAnnotationsFromAttributes(
-                                        classFile.getAttributes(),
-                                        RetentionPolicy.RUNTIME);
+            if (anno.getRetentionPolicy() == RetentionPolicy.RUNTIME)
+                result.add(anno);
         }
-        return classVisibleAnnotations;
+        return result;
     }
 
 
@@ -106,19 +116,27 @@ public class AnnotationParser
      */
     public List<Annotation> getClassInvisibleAnnotations()
     {
-        if (classInvisibleAnnotations == null)
+        lazyBuildClassAnnotationList();
+        List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
+        for (Annotation anno : classAnnotations)
         {
-            classInvisibleAnnotations = parseAnnotationsFromAttributes(
-                                        classFile.getAttributes(),
-                                        RetentionPolicy.CLASS);
+            if (anno.getRetentionPolicy() == RetentionPolicy.CLASS)
+                result.add(anno);
         }
-        return classInvisibleAnnotations;
+        return result;
     }
 
 
     /**
      *  Returns a list of the methods that are marked with the specified
-     *  runtime-visible annotation class, an empty list if there aren't any.
+     *  annotation (visible or invisible), an empty list if there aren't any.
+     *  <p>
+     *  This method examines all methods that are declared by the class, including
+     *  private and protected methods. Caller is responsible for filtering the list
+     *  based on method attributes, and/or loading any superclasses/interfaces.
+     *  <p>
+     *  The order of the returned methods is not guaranteed, and may differ between
+     *  invocations.
      */
     public List<Method> getAnnotatedMethods(String className)
     {
@@ -127,6 +145,7 @@ public class AnnotationParser
         lazyBuildMethodAnnotationMap();
         for (Map.Entry<Method,Map<String,Annotation>> annos : methodAnnotations.entrySet())
         {
+
             if (annos.getValue().containsKey(className))
                 result.add(annos.getKey());
         }
@@ -136,14 +155,23 @@ public class AnnotationParser
 
 
     /**
-     *  Returns a list of the methods that are marked with the specified runtime
-     *  visible annotation, and whose parameters match the name-value pairs passed
-     *  in the provided map. Annotation parameters not included in the map are
-     *  considered matched, and an empty map matches all parameters.
+     *  Returns a list of the methods that are marked with the specified
+     *  annotation (visible or invisible), and whose parameters match the
+     *  name-value pairs passed in the provided map. Returns an empty list
+     *  if there are no methods that match.
      *  <p>
-     *  All parameter values are passed as object instances. Numeric values must be
-     *  passed as the appropriate wrapper type. Array-valued parameters may be passed
-     *  as either an array or a <code>List</code>.
+     *  Parameter values must be an appropriate type, as specified by
+     *  <code>Annotation.ParamValue.valueEquals()</code>. Parameters that do
+     *  not appear in the map are considered matched (wildcarded). An empty
+     *  map matches all parameters (ie, is equivalent to the single-argument
+     *  variant of this method).
+     *  <p>
+     *  This method examines all methods that are declared by the class, including
+     *  private and protected methods. Caller is responsible for filtering the list
+     *  based on method attributes, and/or loading any superclasses/interfaces.
+     *  <p>
+     *  The order of the returned methods is not guaranteed, and may differ between
+     *  invocations.
      */
     public List<Method> getAnnotatedMethods(String className, Map<String,Object> filter)
     {
@@ -189,44 +217,59 @@ public class AnnotationParser
 //  Internals
 //----------------------------------------------------------------------------
 
+
     /**
-     *  Retrieves a string from the constant pool by its index.
+     *  Builds the list of annotations from the class attributes.
      */
-    private String stringConstant(int index)
+    private void lazyBuildClassAnnotationList()
     {
-        ConstantUtf8 val = (ConstantUtf8)cp.getConstant(index);
-        return val.getBytes();
+        if (classAnnotations != null)
+            return;
+
+        classAnnotations = parseAnnotationsFromAttributes(classFile.getAttributes());
     }
 
 
     /**
-     *  Retrieves a string that represents a classname, and converts it from
-     *  internal format to external.
+     *  Builds the map of methods to their annotations.
      */
-    private String typeNameConstant(int index)
+    private void lazyBuildMethodAnnotationMap()
     {
-        String str = stringConstant(index);
-        return ClassUtil.internalNameToExternal(str);
+        if (methodAnnotations != null)
+            return;
+
+        methodAnnotations = new IdentityHashMap<Method,Map<String,Annotation>>();
+        for (Method method : classFile.getMethods())
+        {
+            Map<String,Annotation> annoMap = new HashMap<String,Annotation>();
+            methodAnnotations.put(method, annoMap);
+            for (Annotation anno : parseAnnotationsFromAttributes(method.getAttributes()))
+            {
+                annoMap.put(anno.getClassName(), anno);
+            }
+        }
     }
 
 
     /**
      *  The common parsing code: given the attributes that belong to a class /
-     *  method / field, finds those that are hold attributes, and pull the
-     *  attributes out of them.
+     *  method / field, finds those that are hold annotations, and pull the
+     *  annotations out of them. This method combines visible and invisible
+     *  attributes; caller is responsible for separating them based on
+     *  <code>RetentionPolicy</code>.
      */
-    private List<Annotation> parseAnnotationsFromAttributes(Attribute[] attrs, RetentionPolicy annoPolicy)
+    private List<Annotation> parseAnnotationsFromAttributes(Attribute[] attrs)
     {
         List<Annotation> result = new ArrayList<Annotation>();
-        String attrName = (annoPolicy == RetentionPolicy.CLASS) ? ATTR_ANNOTATION_CLASS
-                        : (annoPolicy == RetentionPolicy.RUNTIME) ? ATTR_ANNOTATION_RUNTIME
-                        : "";  // should never happen, means we won't match anything
         try
         {
             for (Attribute attr : attrs)
             {
                 String name = stringConstant(attr.getNameIndex());
-                if (attrName.equals(name))
+                RetentionPolicy annoPolicy = name.equals(ATTR_ANNOTATION_CLASS) ? RetentionPolicy.CLASS
+                                           : name.equals(ATTR_ANNOTATION_RUNTIME) ? RetentionPolicy.RUNTIME
+                                           : null;
+                if (annoPolicy != null)
                 {
                     byte[] attrData = ((Unknown)attr).getBytes();
                     DataInputStream in = new DataInputStream(
@@ -265,6 +308,7 @@ public class AnnotationParser
         }
         return anno;
     }
+
 
     private ParamValue parseAnnotationValue(DataInputStream in)
     throws IOException
@@ -309,27 +353,22 @@ public class AnnotationParser
 
 
     /**
-     *  Builds the maps that associated annotations to methods. This is intended
-     *  to happen lazily.
+     *  Retrieves a string from the constant pool by its index.
      */
-    private void lazyBuildMethodAnnotationMap()
+    private String stringConstant(int index)
     {
-        if (methodAnnotations != null)
-            return;
+        ConstantUtf8 val = (ConstantUtf8)cp.getConstant(index);
+        return val.getBytes();
+    }
 
-        methodAnnotations = new IdentityHashMap<Method,Map<String,Annotation>>();
-        for (Method method : classFile.getMethods())
-        {
-            Map<String,Annotation> annoMap = new HashMap<String,Annotation>();
-            methodAnnotations.put(method, annoMap);
 
-            List<Annotation> annotations = parseAnnotationsFromAttributes(
-                                            method.getAttributes(),
-                                            RetentionPolicy.RUNTIME);
-            for (Annotation anno : annotations)
-            {
-                annoMap.put(anno.getClassName(), anno);
-            }
-        }
+    /**
+     *  Retrieves a string that represents a classname, and converts it from
+     *  internal format to external.
+     */
+    private String typeNameConstant(int index)
+    {
+        String str = stringConstant(index);
+        return ClassUtil.internalNameToExternal(str);
     }
 }

@@ -211,17 +211,18 @@ public class TestAnnotationParser
         @DefaultStringAnnotation("foo")
         public void myMethod() { /* no body */ }
 
-
         @DefaultStringAnnotation("bar")
         public void myOtherMethod() { /* no body */ }
-
 
         @TwoParamAnnotation(name="foo", quantity=12)
         public void aThirdMethod() { /* no body */ }
 
-
         @TwoParamAnnotation(name="foo", quantity=14)
         public void andAFourth() { /* no body */ }
+
+        @SuppressWarnings("unused")
+        @DefaultNumericAnnotation(12)
+        private void privateMethod() { /* no body */ }
     }
 
 
@@ -247,6 +248,7 @@ public class TestAnnotationParser
         assertEquals("count of parameters",
                      0,
                      anno1.getParams().size());
+
 
         List<Annotation> annos2 = ap.getClassInvisibleAnnotations();
         assertEquals("count of runtime invisible annotations", 1, annos2.size());
@@ -333,6 +335,9 @@ public class TestAnnotationParser
         assertEquals("string value of annotation",
                      "@TestAnnotationParser.DefaultClassAnnotation(java.lang.String.class)",
                      anno1.toString());
+        assertEquals("simpleName of annotation",
+                     "@TestAnnotationParser.DefaultClassAnnotation",
+                     anno1.getName());
         assertEquals("count of parameters",
                      1,
                      anno1.getParams().size());
@@ -493,6 +498,11 @@ public class TestAnnotationParser
             methodNames.add(method.getName());
         assertTrue("annotated methods includes myMethod()",      methodNames.contains("myMethod"));
         assertTrue("annotated methods includes myOtherMethod()", methodNames.contains("myOtherMethod"));
+
+
+        List<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultNumericAnnotation");
+        assertEquals("number of annotated private methods", 1, methods2.size());
+        assertEquals("name of annotated private method", "privateMethod", methods2.get(0).getName());
     }
 
 
