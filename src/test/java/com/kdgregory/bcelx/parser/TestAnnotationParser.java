@@ -21,6 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +61,20 @@ public class TestAnnotationParser
         {
             IOUtil.closeQuietly(in);
         }
+    }
+
+
+    private static Method getMethod(AnnotationParser ap, String methodName)
+    {
+        for (Method method : ap.getParsedClass().getMethods())
+        {
+            if (method.getName().equals(methodName))
+            {
+                return method;
+            }
+        }
+        fail("unable to extract method: " + methodName);
+        return null; // no, we won't get here, but javac doesn't know that
     }
 
 
@@ -212,6 +227,7 @@ public class TestAnnotationParser
         public void myMethod() { /* no body */ }
 
         @DefaultStringAnnotation("bar")
+        @DefaultEnumAnnotation(MyEnum.BLUE)
         public void myOtherMethod() { /* no body */ }
 
         @TwoParamAnnotation(name="foo", quantity=12)
@@ -235,35 +251,56 @@ public class TestAnnotationParser
     {
         AnnotationParser ap = new AnnotationParser(loadClass(MarkedClass.class));
 
-        List<Annotation> annos1 = ap.getClassVisibleAnnotations();
-        assertEquals("count of runtime visible annotations", 1, annos1.size());
+        List<Annotation> annos1 = ap.getClassAnnotations();
+        assertEquals("count of total class annotations", 2, annos1.size());
 
-        Annotation anno1 = annos1.get(0);
-        assertEquals("value of runtime visible annotation",
-                     "@TestAnnotationParser.RuntimeMarkerAnnotation",
-                     anno1.toString());
-        assertEquals("fq classname of runtime visible annotation",
-                     "com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation",
-                     anno1.getClassName());
-        assertEquals("count of parameters",
-                     0,
-                     anno1.getParams().size());
+        // can't guarantee order that annotation attributes will appear, so must
+        // revert to tracking their names
+        Set<String> anno1Values = new HashSet<String>();
+        for (Annotation anno : annos1)
+        {
+            anno1Values.add(anno.toString());
+        }
+        assertTrue("first class annotation",
+                   anno1Values.contains("@TestAnnotationParser.RuntimeMarkerAnnotation"));
+        assertTrue("second class annotation",
+                   anno1Values.contains("@TestAnnotationParser.ClassMarkerAnnotation"));
 
 
-        List<Annotation> annos2 = ap.getClassInvisibleAnnotations();
-        assertEquals("count of runtime invisible annotations", 1, annos2.size());
+        List<Annotation> annos2 = ap.getClassVisibleAnnotations();
+        assertEquals("count of runtime visible annotations", 1, annos2.size());
 
         Annotation anno2 = annos2.get(0);
-        assertEquals("value of runtime invisible annotation",
-                     "@TestAnnotationParser.ClassMarkerAnnotation",
+        assertEquals("value of runtime visible annotation",
+                     "@TestAnnotationParser.RuntimeMarkerAnnotation",
                      anno2.toString());
         assertEquals("fq classname of runtime visible annotation",
-                     "com.kdgregory.bcelx.parser.TestAnnotationParser.ClassMarkerAnnotation",
+                     "com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation",
                      anno2.getClassName());
         assertEquals("count of parameters",
-                     0,
-                     anno2.getParams().size());
+                     0, anno2.getParams().size());
 
+
+        List<Annotation> annos3 = ap.getClassInvisibleAnnotations();
+        assertEquals("count of runtime invisible annotations", 1, annos3.size());
+
+        Annotation anno3 = annos3.get(0);
+        assertEquals("value of runtime invisible annotation",
+                     "@TestAnnotationParser.ClassMarkerAnnotation",
+                     anno3.toString());
+        assertEquals("fq classname of runtime visible annotation",
+                     "com.kdgregory.bcelx.parser.TestAnnotationParser.ClassMarkerAnnotation",
+                     anno3.getClassName());
+        assertEquals("count of parameters",
+                     0, anno3.getParams().size());
+
+
+        assertEquals("retrieve visible annotation by name",
+                     "@TestAnnotationParser.RuntimeMarkerAnnotation",
+                     ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation").toString());
+        assertEquals("retrieve invisible annotation by name",
+                     "@TestAnnotationParser.ClassMarkerAnnotation",
+                     ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.ClassMarkerAnnotation").toString());
     }
 
 
@@ -473,14 +510,17 @@ public class TestAnnotationParser
     {
         AnnotationParser ap = new AnnotationParser(loadClass(MultiplyAnnotatedClass.class));
 
-        List<Annotation> anno = ap.getClassVisibleAnnotations();
-        assertEquals("count of runtime visible annotations", 2, anno.size());
+        List<Annotation> annos = ap.getClassVisibleAnnotations();
+        assertEquals("count of runtime visible annotations", 2, annos.size());
         assertEquals("string value of annotation 0",
                      "@TestAnnotationParser.DefaultStringAnnotation(\"foo\")",
-                     anno.get(0).toString());
+                     annos.get(0).toString());
         assertEquals("string value of annotation 1",
                      "@TestAnnotationParser.DefaultNumericAnnotation(12)",
-                     anno.get(1).toString());
+                     annos.get(1).toString());
+
+        Annotation anno = ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultNumericAnnotation");
+        assertEquals("value of explicitly retrieved annotation", 12, anno.getParam("value").getScalar());
     }
 
 
@@ -563,27 +603,29 @@ public class TestAnnotationParser
     public void testGetAnnotationsForMethod() throws Exception
     {
         AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedMethods.class));
+        Method method = getMethod(ap, "myOtherMethod");
 
-        Method method = null;
-        for (Method mm : ap.getParsedClass().getMethods())
-        {
-            if (mm.getName().equals("myOtherMethod"))
-            {
-                method = mm;
-                break;
-            }
-        }
-        assertNotNull("we properly extracted the method", method);
+        // verify that we can get all annotations, in order
 
         List<Annotation> annos = ap.getMethodAnnotations(method);
-        assertEquals("number of annotations", 1, annos.size());
-        assertEquals("annotation param",      "bar", annos.get(0).getParam("value").getScalar());
+        assertEquals("number of annotations", 2, annos.size());
+        assertEquals("annotation param #1",   "bar",       annos.get(0).getParam("value").getScalar());
+        assertEquals("annotation param #2",   MyEnum.BLUE, annos.get(1).getParam("value").getEnum());
 
-        // and make sure that we don't blow up if the method doesn't exist
+        // and that we can get a particular named annotation
+
+        Annotation anno1 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultEnumAnnotation");
+        assertEquals("get by class, param", MyEnum.BLUE, anno1.getParam("value").getEnum());
+
+        // and that we don't blow up if the annotation doesn't exist
+
+        Annotation anno2 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.NoSuchAnnotation");
+        assertNull("get by nonexistent class", anno2);
+
+        // and finally, that we don't blow up if the method itself doesn't exist
 
         AnnotationParser ap2 = new AnnotationParser(loadClass(DefaultStringAnnotatedClass.class));
         List<Annotation> annos2 = ap2.getMethodAnnotations(method);
         assertEquals("number of annotations, missing method", 0, annos2.size());
-
     }
 }

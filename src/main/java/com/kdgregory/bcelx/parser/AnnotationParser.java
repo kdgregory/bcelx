@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +67,7 @@ public class AnnotationParser
     private ConstantPool cp;
 
     // lazily initialized
-    private List<Annotation> classAnnotations;
+    private Map<String,Annotation> classAnnotations;
     private Map<Method,Map<String,Annotation>> methodAnnotations;
 
 
@@ -94,14 +94,26 @@ public class AnnotationParser
 
 
     /**
+     *  Returns all annotations on a class, visible and invisiable.
+     */
+    public List<Annotation> getClassAnnotations()
+    {
+        lazyBuildClassAnnotationMap();
+        List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
+        result.addAll(classAnnotations.values());
+        return result;
+    }
+
+
+    /**
      *  Returns the runtime-visible annotations for this class, an empty list if
      *  there aren't any such annotations.
      */
     public List<Annotation> getClassVisibleAnnotations()
     {
-        lazyBuildClassAnnotationList();
+        lazyBuildClassAnnotationMap();
         List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
-        for (Annotation anno : classAnnotations)
+        for (Annotation anno : classAnnotations.values())
         {
             if (anno.getRetentionPolicy() == RetentionPolicy.RUNTIME)
                 result.add(anno);
@@ -116,14 +128,25 @@ public class AnnotationParser
      */
     public List<Annotation> getClassInvisibleAnnotations()
     {
-        lazyBuildClassAnnotationList();
+        lazyBuildClassAnnotationMap();
         List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
-        for (Annotation anno : classAnnotations)
+        for (Annotation anno : classAnnotations.values())
         {
             if (anno.getRetentionPolicy() == RetentionPolicy.CLASS)
                 result.add(anno);
         }
         return result;
+    }
+
+
+    /**
+     *  Returns a single class-level annotation (visible or invisible), null if
+     *  it doesn't exist.
+     */
+    public Annotation getClassAnnotation(String annoClass)
+    {
+        lazyBuildClassAnnotationMap();
+        return classAnnotations.get(annoClass);
     }
 
 
@@ -213,6 +236,18 @@ public class AnnotationParser
     }
 
 
+    /**
+     *  Returns a single annotation from the passed method, <code>null</code> if the
+     *  method does not have that annotation.
+     */
+    public Annotation getMethodAnnotation(Method method, String annoClass)
+    {
+        lazyBuildMethodAnnotationMap();
+        Map<String,Annotation> annos = methodAnnotations.get(method);
+        return (annos != null) ? annos.get(annoClass) : null;
+    }
+
+
 //----------------------------------------------------------------------------
 //  Internals
 //----------------------------------------------------------------------------
@@ -221,12 +256,16 @@ public class AnnotationParser
     /**
      *  Builds the list of annotations from the class attributes.
      */
-    private void lazyBuildClassAnnotationList()
+    private void lazyBuildClassAnnotationMap()
     {
         if (classAnnotations != null)
             return;
 
-        classAnnotations = parseAnnotationsFromAttributes(classFile.getAttributes());
+        classAnnotations = new LinkedHashMap<String,Annotation>();
+        for (Annotation anno :  parseAnnotationsFromAttributes(classFile.getAttributes()))
+        {
+            classAnnotations.put(anno.getClassName(), anno);
+        }
     }
 
 
@@ -241,7 +280,7 @@ public class AnnotationParser
         methodAnnotations = new IdentityHashMap<Method,Map<String,Annotation>>();
         for (Method method : classFile.getMethods())
         {
-            Map<String,Annotation> annoMap = new HashMap<String,Annotation>();
+            Map<String,Annotation> annoMap = new LinkedHashMap<String,Annotation>();
             methodAnnotations.put(method, annoMap);
             for (Annotation anno : parseAnnotationsFromAttributes(method.getAttributes()))
             {
