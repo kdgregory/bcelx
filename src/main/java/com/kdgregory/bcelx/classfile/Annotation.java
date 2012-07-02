@@ -240,7 +240,7 @@ public class Annotation
         /**
          *  Returns <code>STRING</code> and <code>NUMBER</code> parameter values.
          */
-        public Object getScalar()
+        public Object asScalar()
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
@@ -252,7 +252,7 @@ public class Annotation
          *  Note that the class must be available on the classpath, and will be
          *  loaded if necessary.
          */
-        public Class<?> getKlass()
+        public Class<?> asClass()
         throws ClassNotFoundException
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
@@ -265,7 +265,7 @@ public class Annotation
          *  Note that the enum class must be available on the classpath, and will be
          *  loaded if necessary.
          */
-        public Enum<?> getEnum()
+        public Enum<?> asEnum()
         throws ClassNotFoundException
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
@@ -279,7 +279,7 @@ public class Annotation
          *  the contained object type, you can call {@link#getArrayAsObjects},
          *  which returns the actual values held in the array.
          */
-        public List<ParamValue> getArray()
+        public List<ParamValue> asArray()
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
@@ -290,7 +290,7 @@ public class Annotation
          *  values will be loaded during this process, and must appear on the
          *  classpath.
          */
-        public List<Object> getArrayAsObjects()
+        public List<Object> asArrayOfObjects()
         throws ClassNotFoundException
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
@@ -326,11 +326,11 @@ public class Annotation
         @Override
         public boolean valueEquals(Object obj)
         {
-            return getScalar().equals(obj);
+            return asScalar().equals(obj);
         }
 
         @Override
-        public Object getScalar()
+        public Object asScalar()
         {
             return value;
         }
@@ -365,7 +365,7 @@ public class Annotation
             try
             {
                 if (obj instanceof Class)
-                    return getKlass().equals(obj);
+                    return asClass().equals(obj);
                 else if (obj instanceof String)
                     return toString().equals(obj);
                 else
@@ -378,7 +378,7 @@ public class Annotation
         }
 
         @Override
-        public Class<?> getKlass()
+        public Class<?> asClass()
         throws ClassNotFoundException
         {
             return Class.forName(className);
@@ -416,7 +416,7 @@ public class Annotation
             try
             {
                 if (obj instanceof Enum)
-                    return getEnum().equals(obj);
+                    return asEnum().equals(obj);
                 else if (obj instanceof String)
                     return toString().equals(obj);
                 else
@@ -429,7 +429,7 @@ public class Annotation
         }
 
         @Override
-        public Enum<?> getEnum()
+        public Enum<?> asEnum()
         throws ClassNotFoundException
         {
             Class<?> enumKlass = Class.forName(enumClassName);
@@ -488,7 +488,7 @@ public class Annotation
 
             try
             {
-                return getArrayAsObjects().equals(obj);
+                return asArrayOfObjects().equals(obj);
             }
             catch (ClassNotFoundException e)
             {
@@ -497,7 +497,7 @@ public class Annotation
         }
 
         @Override
-        public List<ParamValue> getArray()
+        public List<ParamValue> asArray()
         {
             // need to do a deep copy so that we don't expose mutable state
             // for multi-dimensional arrays
@@ -505,7 +505,7 @@ public class Annotation
             for (ParamValue value : values)
             {
                 if (value.getType() == ParamType.ARRAY)
-                    ret.add(new ArrayValue(value.getArray()));
+                    ret.add(new ArrayValue(value.asArray()));
                 else
                     ret.add(value);
             }
@@ -513,7 +513,7 @@ public class Annotation
         }
 
         @Override
-        public List<Object> getArrayAsObjects()
+        public List<Object> asArrayOfObjects()
         throws ClassNotFoundException
         {
             List<Object> ret = new ArrayList<Object>(values.size());
@@ -523,16 +523,16 @@ public class Annotation
                 {
                     case STRING :
                     case NUMBER :
-                        ret.add(value.getScalar());
+                        ret.add(value.asScalar());
                         break;
                     case CLASS :
-                        ret.add(value.getKlass());
+                        ret.add(value.asClass());
                         break;
                     case ENUM :
-                        ret.add(value.getEnum());
+                        ret.add(value.asEnum());
                         break;
                     case ARRAY :
-                        ret.add(value.getArrayAsObjects());
+                        ret.add(value.asArrayOfObjects());
                         break;
                     default :
                         throw new UnreachableCodeException("unexpected param type: " + value.getType());
