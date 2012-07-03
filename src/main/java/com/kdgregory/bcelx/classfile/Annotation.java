@@ -289,7 +289,7 @@ public class Annotation
          *  the contained object type, you can call {@link#getArrayAsObjects},
          *  which returns the actual values held in the array.
          */
-        public List<ParamValue> asArray()
+        public List<ParamValue> asListOfValues()
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
         }
@@ -300,7 +300,7 @@ public class Annotation
          *  values will be loaded during this process, and must appear on the
          *  classpath.
          */
-        public List<Object> asArrayOfObjects()
+        public List<Object> asListOfObjects()
         throws ClassNotFoundException
         {
             throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
@@ -498,7 +498,7 @@ public class Annotation
 
             try
             {
-                return asArrayOfObjects().equals(obj);
+                return asListOfObjects().equals(obj);
             }
             catch (ClassNotFoundException e)
             {
@@ -507,7 +507,7 @@ public class Annotation
         }
 
         @Override
-        public List<ParamValue> asArray()
+        public List<ParamValue> asListOfValues()
         {
             // need to do a deep copy so that we don't expose mutable state
             // for multi-dimensional arrays
@@ -515,7 +515,7 @@ public class Annotation
             for (ParamValue value : values)
             {
                 if (value.getType() == ParamType.ARRAY)
-                    ret.add(new ArrayValue(value.asArray()));
+                    ret.add(new ArrayValue(value.asListOfValues()));
                 else
                     ret.add(value);
             }
@@ -523,7 +523,7 @@ public class Annotation
         }
 
         @Override
-        public List<Object> asArrayOfObjects()
+        public List<Object> asListOfObjects()
         throws ClassNotFoundException
         {
             List<Object> ret = new ArrayList<Object>(values.size());
@@ -542,7 +542,7 @@ public class Annotation
                         ret.add(value.asEnum());
                         break;
                     case ARRAY :
-                        ret.add(value.asArrayOfObjects());
+                        ret.add(value.asListOfObjects());
                         break;
                     default :
                         throw new UnreachableCodeException("unexpected param type: " + value.getType());

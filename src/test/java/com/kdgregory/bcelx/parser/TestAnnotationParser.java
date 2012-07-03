@@ -471,7 +471,7 @@ public class TestAnnotationParser
         Annotation.ParamValue annoValue = anno.getValue();
         assertEquals("value as List<Object>",
                      Arrays.asList("foo", "bar"),
-                     annoValue.asArrayOfObjects());
+                     annoValue.asListOfObjects());
         assertTrue("equality to correct value",
                     annoValue.valueEquals(Arrays.asList("foo", "bar")));
         assertFalse("equality to incorrect value",
