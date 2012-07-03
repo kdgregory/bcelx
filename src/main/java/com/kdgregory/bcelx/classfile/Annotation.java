@@ -114,6 +114,16 @@ public class Annotation
 
 
     /**
+     *  Returns the "value" parameter, <code>null</code> if there's no parameter
+     *  with that name.
+     */
+    public ParamValue getValue()
+    {
+        return params.get("value");
+    }
+
+
+    /**
      *  Returns a string representation of the annotation. This representation
      *  will match what would you see in the source code using the annotation,
      *  with the caveat that default values are explicitly shown.

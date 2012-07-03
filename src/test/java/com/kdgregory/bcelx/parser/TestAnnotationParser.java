@@ -320,7 +320,7 @@ public class TestAnnotationParser
                      1,
                      anno.getParams().size());
 
-        Annotation.ParamValue annoValue = anno.getParam("value");
+        Annotation.ParamValue annoValue = anno.getValue();
         assertEquals("value as string",
                      "foo",
                      annoValue.asScalar());
@@ -347,7 +347,7 @@ public class TestAnnotationParser
                      1,
                      anno.getParams().size());
 
-        Annotation.ParamValue annoValue = anno.getParam("value");
+        Annotation.ParamValue annoValue = anno.getValue();
         assertEquals("value as number",
                      new Integer(12),
                      annoValue.asScalar());
@@ -379,7 +379,7 @@ public class TestAnnotationParser
                      1,
                      anno1.getParams().size());
 
-        Annotation.ParamValue anno1Value = anno1.getParam("value");
+        Annotation.ParamValue anno1Value = anno1.getValue();
         assertEquals("value as class",
                      String.class,
                      anno1Value.asClass());
@@ -406,7 +406,7 @@ public class TestAnnotationParser
                      1,
                      anno1.getParams().size());
 
-        Annotation.ParamValue anno2Value = anno2.getParam("value");
+        Annotation.ParamValue anno2Value = anno2.getValue();
         assertEquals("value as class",
                      MyLocalClass.class,
                      anno2Value.asClass());
@@ -437,7 +437,7 @@ public class TestAnnotationParser
                      1,
                      anno.getParams().size());
 
-        Annotation.ParamValue annoValue = anno.getParam("value");
+        Annotation.ParamValue annoValue = anno.getValue();
         assertEquals("value as enum",
                      MyEnum.RED,
                      annoValue.asEnum());
@@ -468,7 +468,7 @@ public class TestAnnotationParser
                      1,
                      anno.getParams().size());
 
-        Annotation.ParamValue annoValue = anno.getParam("value");
+        Annotation.ParamValue annoValue = anno.getValue();
         assertEquals("value as List<Object>",
                      Arrays.asList("foo", "bar"),
                      annoValue.asArrayOfObjects());
@@ -520,7 +520,7 @@ public class TestAnnotationParser
                      annos.get(1).toString());
 
         Annotation anno = ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultNumericAnnotation");
-        assertEquals("value of explicitly retrieved annotation", 12, anno.getParam("value").asScalar());
+        assertEquals("value of explicitly retrieved annotation", 12, anno.getValue().asScalar());
     }
 
 
@@ -609,13 +609,13 @@ public class TestAnnotationParser
 
         List<Annotation> annos = ap.getMethodAnnotations(method);
         assertEquals("number of annotations", 2, annos.size());
-        assertEquals("annotation param #1",   "bar",       annos.get(0).getParam("value").asScalar());
-        assertEquals("annotation param #2",   MyEnum.BLUE, annos.get(1).getParam("value").asEnum());
+        assertEquals("annotation param #1",   "bar",       annos.get(0).getValue().asScalar());
+        assertEquals("annotation param #2",   MyEnum.BLUE, annos.get(1).getValue().asEnum());
 
         // and that we can get a particular named annotation
 
         Annotation anno1 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultEnumAnnotation");
-        assertEquals("get by class, param", MyEnum.BLUE, anno1.getParam("value").asEnum());
+        assertEquals("get by class, param", MyEnum.BLUE, anno1.getValue().asEnum());
 
         // and that we don't blow up if the annotation doesn't exist
 
