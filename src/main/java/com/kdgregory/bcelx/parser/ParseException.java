@@ -16,7 +16,7 @@ package com.kdgregory.bcelx.parser;
 
 /**
  *  Indicates some problem with the parsing code; it should be considered
- *  unrecoverable. Instances will always wrap an underlying cause.
+ *  unrecoverable.
  */
 public class ParseException extends RuntimeException
 {
@@ -25,5 +25,10 @@ public class ParseException extends RuntimeException
     public ParseException(String message, Throwable cause)
     {
         super(message, cause);
+    }
+
+    public ParseException(String message)
+    {
+        super(message);
     }
 }

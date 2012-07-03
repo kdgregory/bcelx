@@ -34,7 +34,6 @@ import org.apache.bcel.classfile.Method;
 import org.apache.bcel.classfile.Unknown;
 
 import net.sf.kdgcommons.lang.ClassUtil;
-import net.sf.kdgcommons.lang.UnreachableCodeException;
 
 import com.kdgregory.bcelx.classfile.Annotation;
 import com.kdgregory.bcelx.classfile.Annotation.ArrayValue;
@@ -207,10 +206,10 @@ public class AnnotationParser
                 Annotation anno = methodAnnotations.get(method).get(className);
                 for (Map.Entry<String,Object> param : filter.entrySet())
                 {
-                    String paramName = param.getKey();
-                    Object paramValue = param.getValue();
-                    ParamValue annoParam = anno.getParam(paramName);
-                    if ((annoParam == null) || !annoParam.valueEquals(paramValue))
+                    String filterName = param.getKey();
+                    Object filterValue = param.getValue();
+                    ParamValue annoParam = anno.getParam(filterName);
+                    if ((annoParam == null) || !annoParam.valueEquals(filterValue))
                         break inner;
                 }
                 result.add(method);
@@ -323,6 +322,8 @@ public class AnnotationParser
         }
         catch (Exception ex)
         {
+            if (ex instanceof ParseException)
+                throw (ParseException)ex;
             throw new ParseException("unable to parse attribute", ex);
         }
         return result;
@@ -386,7 +387,7 @@ public class AnnotationParser
                 }
                 return new ArrayValue(arrayValues);
             default :
-                throw new UnreachableCodeException("invalid value tag: " + tag);
+                throw new ParseException("unsupported value tag: " + tag);
         }
     }
 
