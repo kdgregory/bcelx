@@ -252,7 +252,7 @@ public class Annotation
          */
         public Object asScalar()
         {
-            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
+            throw new ClassfileException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -260,12 +260,11 @@ public class Annotation
          *  Returns the instance for a <code>CLASS</code> value.
          *  <p>
          *  Note that the class must be available on the classpath, and will be
-         *  loaded if necessary.
+         *  loaded if necessary. Will throw if the class cannot be loaded.
          */
         public Class<?> asClass()
-        throws ClassNotFoundException
         {
-            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
+            throw new ClassfileException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -273,12 +272,11 @@ public class Annotation
          *  Returns the instance for an <code>ENUM</code> value.
          *  <p>
          *  Note that the enum class must be available on the classpath, and will be
-         *  loaded if necessary.
+         *  loaded if necessary. Will throw if the class cannot be loaded.
          */
         public Enum<?> asEnum()
-        throws ClassNotFoundException
         {
-            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
+            throw new ClassfileException("this method not appropriate for " + getType() + " values");
         }
 
 
@@ -291,19 +289,18 @@ public class Annotation
          */
         public List<ParamValue> asListOfValues()
         {
-            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
+            throw new ClassfileException("this method not appropriate for " + getType() + " values");
         }
 
 
         /**
          *  Converts an array parameter into a list of objects. Any enum or class
          *  values will be loaded during this process, and must appear on the
-         *  classpath.
+         *  classpath. Will throw if the class cannot be loaded.
          */
         public List<Object> asListOfObjects()
-        throws ClassNotFoundException
         {
-            throw new UnsupportedOperationException("this method not appropriate for " + getType() + " values");
+            throw new ClassfileException("this method not appropriate for " + getType() + " values");
         }
     }
 
@@ -372,26 +369,25 @@ public class Annotation
         @Override
         public boolean valueEquals(Object obj)
         {
-            try
-            {
-                if (obj instanceof Class)
-                    return asClass().equals(obj);
-                else if (obj instanceof String)
-                    return toString().equals(obj);
-                else
-                    return false;
-            }
-            catch (ClassNotFoundException ex)
-            {
+            if (obj instanceof Class)
+                return asClass().equals(obj);
+            else if (obj instanceof String)
+                return toString().equals(obj);
+            else
                 return false;
-            }
         }
 
         @Override
         public Class<?> asClass()
-        throws ClassNotFoundException
         {
-            return Class.forName(className);
+            try
+            {
+                return Class.forName(className);
+            }
+            catch (ClassNotFoundException ex)
+            {
+                throw new ClassfileException("unable to load class: " + className, ex);
+            }
         }
     }
 
@@ -423,37 +419,36 @@ public class Annotation
         @Override
         public boolean valueEquals(Object obj)
         {
-            try
-            {
-                if (obj instanceof Enum)
-                    return asEnum().equals(obj);
-                else if (obj instanceof String)
-                    return toString().equals(obj);
-                else
-                    return false;
-            }
-            catch (ClassNotFoundException ex)
-            {
+            if (obj instanceof Enum)
+                return asEnum().equals(obj);
+            else if (obj instanceof String)
+                return toString().equals(obj);
+            else
                 return false;
-            }
         }
 
         @Override
         public Enum<?> asEnum()
-        throws ClassNotFoundException
         {
-            Class<?> enumKlass = Class.forName(enumClassName);
-
-            // I can't figure my way around the parameter bounds of Enum.valueOf(),
-            // so this seems the easiest way to make this work
-            for (Object value : enumKlass.getEnumConstants())
+            try
             {
-                Enum<?> ee = (Enum<?>)value;
-                if (ee.name().equals(enumValue))
-                    return ee;
-            }
+                Class<?> enumKlass = Class.forName(enumClassName);
 
-            return null;
+                // I can't figure my way around the parameter bounds of Enum.valueOf(),
+                // so this seems the easiest way to make this work
+                for (Object value : enumKlass.getEnumConstants())
+                {
+                    Enum<?> ee = (Enum<?>)value;
+                    if (ee.name().equals(enumValue))
+                        return ee;
+                }
+
+                return null;
+            }
+            catch (ClassNotFoundException ex)
+            {
+                throw new ClassfileException("unable to load class: " + enumClassName, ex);
+            }
         }
     }
 
@@ -496,14 +491,7 @@ public class Annotation
             if (!(obj instanceof List))
                 return false;
 
-            try
-            {
-                return asListOfObjects().equals(obj);
-            }
-            catch (ClassNotFoundException e)
-            {
-                return false;
-            }
+            return asListOfObjects().equals(obj);
         }
 
         @Override
@@ -524,7 +512,6 @@ public class Annotation
 
         @Override
         public List<Object> asListOfObjects()
-        throws ClassNotFoundException
         {
             List<Object> ret = new ArrayList<Object>(values.size());
             for (ParamValue value : values)
