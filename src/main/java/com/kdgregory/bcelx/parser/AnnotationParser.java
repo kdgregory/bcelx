@@ -53,8 +53,10 @@ import com.kdgregory.bcelx.classfile.Annotation.ScalarValue;
  */
 public class AnnotationParser
 {
-    private final static String ATTR_ANNOTATION_RUNTIME = "RuntimeVisibleAnnotations";
-    private final static String ATTR_ANNOTATION_CLASS   = "RuntimeInvisibleAnnotations";
+    private final static String ATTR_STANDARD_VISIBLE   = "RuntimeVisibleAnnotations";
+    private final static String ATTR_STANDARD_INVISIBLE = "RuntimeInvisibleAnnotations";
+    private final static String ATTR_PARAM_VISIBLE      = "RuntimeVisibleParameterAnnotations";
+    private final static String ATTR_PARAM_INVISIBLE    = "RuntimeInvisibleParameterAnnotations";
 
 
 //----------------------------------------------------------------------------
@@ -68,6 +70,7 @@ public class AnnotationParser
     // lazily initialized
     private Map<String,Annotation> classAnnotations;
     private Map<Method,Map<String,Annotation>> methodAnnotations;
+    private Map<Method,List<Map<String,Annotation>>> parameterAnnotations;
 
 
     public AnnotationParser(JavaClass classFile)
@@ -221,9 +224,9 @@ public class AnnotationParser
 
 
     /**
-     *  Returns all runtime-visible annotations for the passed method. Will return
-     *  an empty list if there are no annotations, or if the method does not belong
-     *  to the class associated with this parser.
+     *  Returns all annotations for the passed method, an empty list if there are
+     *  no annotations or if the method does not belong to the class associated
+     *  with this parser.
      */
     public List<Annotation> getMethodAnnotations(Method method)
     {
@@ -247,10 +250,41 @@ public class AnnotationParser
     }
 
 
+    /**
+     *  Returns the annotations for a method's parameters. The result is a list, each
+     *  element of which corresponds to a parameter by position; if the method has no
+     *  parameters, this list will be empty. Each element in the returned list is a
+     *  list of the annotations for that parameter.
+     */
+    public List<Map<String,Annotation>> getParameterAnnotatons(Method method)
+    {
+        lazyBuildParameterAnnotations();
+        return parameterAnnotations.get(method);
+    }
+
+
+    /**
+     *  Returns a single annotation from the specified method parameter,
+     *  <code>null</code> if the parameter does not have that annotation.
+     *  Parameter indices are numbered from 0.
+     */
+    public Annotation getParameterAnnotation(Method method, int paramIndex, String annoClass)
+    {
+        lazyBuildParameterAnnotations();
+        List<Map<String,Annotation>> allAnnos = parameterAnnotations.get(method);
+        if ((allAnnos == null) || (allAnnos.size() <= paramIndex))
+        {
+            throw new IllegalArgumentException("invalid method/parameter: " + method.getName() + "/" + paramIndex);
+        }
+
+        Map<String,Annotation> paramAnnos = allAnnos.get(paramIndex);
+        return paramAnnos.get(annoClass);
+    }
+
+
 //----------------------------------------------------------------------------
 //  Internals
 //----------------------------------------------------------------------------
-
 
     /**
      *  Builds the list of annotations from the class attributes.
@@ -261,7 +295,7 @@ public class AnnotationParser
             return;
 
         classAnnotations = new LinkedHashMap<String,Annotation>();
-        for (Annotation anno :  parseAnnotationsFromAttributes(classFile.getAttributes()))
+        for (Annotation anno :  parseStandardAnnotations(classFile.getAttributes()))
         {
             classAnnotations.put(anno.getClassName(), anno);
         }
@@ -281,7 +315,7 @@ public class AnnotationParser
         {
             Map<String,Annotation> annoMap = new LinkedHashMap<String,Annotation>();
             methodAnnotations.put(method, annoMap);
-            for (Annotation anno : parseAnnotationsFromAttributes(method.getAttributes()))
+            for (Annotation anno : parseStandardAnnotations(method.getAttributes()))
             {
                 annoMap.put(anno.getClassName(), anno);
             }
@@ -290,13 +324,30 @@ public class AnnotationParser
 
 
     /**
-     *  The common parsing code: given the attributes that belong to a class /
-     *  method / field, finds those that are hold annotations, and pull the
-     *  annotations out of them. This method combines visible and invisible
-     *  attributes; caller is responsible for separating them based on
+     *  Builds the map of methods to their parameter annotations.
+     */
+    private void lazyBuildParameterAnnotations()
+    {
+        if (parameterAnnotations != null)
+            return;
+
+        parameterAnnotations = new IdentityHashMap<Method,List<Map<String,Annotation>>>();
+        for (Method method : classFile.getMethods())
+        {
+            List<Map<String,Annotation>> annos = parseParameterAnnotations(method);
+            parameterAnnotations.put(method, Collections.unmodifiableList(annos));
+        }
+    }
+
+
+    /**
+     *  Top-level parsing code for standard annotations: given the attributes that
+     *  belong to a class / method / field, finds those that are hold annotations
+     *  and pulls the annotations out of them. This method combines visible and
+     *  invisible annotations; caller is responsible for separating them based on
      *  <code>RetentionPolicy</code>.
      */
-    private List<Annotation> parseAnnotationsFromAttributes(Attribute[] attrs)
+    private List<Annotation> parseStandardAnnotations(Attribute[] attrs)
     {
         List<Annotation> result = new ArrayList<Annotation>();
         try
@@ -304,18 +355,64 @@ public class AnnotationParser
             for (Attribute attr : attrs)
             {
                 String name = stringConstant(attr.getNameIndex());
-                RetentionPolicy annoPolicy = name.equals(ATTR_ANNOTATION_CLASS) ? RetentionPolicy.CLASS
-                                           : name.equals(ATTR_ANNOTATION_RUNTIME) ? RetentionPolicy.RUNTIME
+                RetentionPolicy annoPolicy = name.equals(ATTR_STANDARD_INVISIBLE) ? RetentionPolicy.CLASS
+                                           : name.equals(ATTR_STANDARD_VISIBLE) ? RetentionPolicy.RUNTIME
                                            : null;
                 if (annoPolicy != null)
                 {
                     byte[] attrData = ((Unknown)attr).getBytes();
                     DataInputStream in = new DataInputStream(
                                             new ByteArrayInputStream(attrData));
-                    int numAnnos = in.readUnsignedShort();
-                    for (int ii = 0 ; ii < numAnnos ; ii++)
+                    result.addAll(parseAnnotationsFromStream(in, annoPolicy));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ex instanceof ParseException)
+                throw (ParseException)ex;
+            throw new ParseException("unable to parse attribute", ex);
+        }
+        return result;
+    }
+
+
+    /**
+     *  Top-level parsing code for parameter annotations. Returns a list-of-lists,
+     *  containing an entry for each method parameter. These entries hold the actual
+     *  annotations; they may be empty.
+     *  <p>
+     *  Note: the contained lists will be immutable, however the returned list isn't.
+     */
+    private List<Map<String,Annotation>> parseParameterAnnotations(Method method)
+    {
+        List<Map<String,Annotation>> result = new ArrayList<Map<String,Annotation>>();
+        for (int ii = 0 ; ii < method.getArgumentTypes().length ; ii++)
+        {
+            result.add(new LinkedHashMap<String,Annotation>());
+        }
+
+        try
+        {
+            for (Attribute attr : method.getAttributes())
+            {
+                String name = stringConstant(attr.getNameIndex());
+                RetentionPolicy annoPolicy = name.equals(ATTR_PARAM_INVISIBLE) ? RetentionPolicy.CLASS
+                                           : name.equals(ATTR_PARAM_VISIBLE)   ? RetentionPolicy.RUNTIME
+                                           : null;
+                if (annoPolicy != null)
+                {
+                    byte[] attrData = ((Unknown)attr).getBytes();
+                    DataInputStream in = new DataInputStream(
+                                            new ByteArrayInputStream(attrData));
+                    int numParams = in.readUnsignedByte();
+                    for (int ii = 0 ; ii < numParams ; ii++)
                     {
-                        result.add(parseAnnotationFromStream(in, annoPolicy));
+                        Map<String,Annotation> existing = result.get(ii);
+                        for (Annotation anno : parseAnnotationsFromStream(in, annoPolicy))
+                        {
+                            existing.put(anno.getClassName(), anno);
+                        }
                     }
                 }
             }
@@ -326,6 +423,24 @@ public class AnnotationParser
                 throw (ParseException)ex;
             throw new ParseException("unable to parse attribute", ex);
         }
+        return result;
+    }
+
+
+    /**
+     *  Parses a list of annotations from the passed stream. This is common code for
+     *  both standard and parameter annotations.
+     */
+    private List<Annotation> parseAnnotationsFromStream(DataInputStream in, RetentionPolicy policy)
+    throws IOException
+    {
+        List<Annotation> result = new ArrayList<Annotation>();
+        int numAnnos = in.readUnsignedShort();
+        for (int ii = 0 ; ii < numAnnos ; ii++)
+        {
+            result.add(parseAnnotationFromStream(in, policy));
+        }
+
         return result;
     }
 

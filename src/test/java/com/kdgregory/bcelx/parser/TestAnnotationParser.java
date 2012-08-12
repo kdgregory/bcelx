@@ -158,10 +158,26 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface TwoParamAnnotation
+    public @interface MultivalueAnnotation
     {
         String name();
         int quantity();
+    }
+
+
+    @Target(ElementType.PARAMETER)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface ParamAnnotation1
+    {
+        String value();
+    }
+
+
+    @Target(ElementType.PARAMETER)
+    @Retention(RetentionPolicy.CLASS)
+    public @interface ParamAnnotation2
+    {
+        // nothing here
     }
 
 
@@ -210,7 +226,7 @@ public class TestAnnotationParser
     { /* nothing here */ }
 
 
-    @TwoParamAnnotation(name="foo", quantity=12)
+    @MultivalueAnnotation(name="foo", quantity=12)
     public static class TwoParamAnnotatedClass
     { /* nothing here */ }
 
@@ -230,15 +246,28 @@ public class TestAnnotationParser
         @DefaultEnumAnnotation(MyEnum.BLUE)
         public void myOtherMethod() { /* no body */ }
 
-        @TwoParamAnnotation(name="foo", quantity=12)
+        @MultivalueAnnotation(name="foo", quantity=12)
         public void aThirdMethod() { /* no body */ }
 
-        @TwoParamAnnotation(name="foo", quantity=14)
+        @MultivalueAnnotation(name="foo", quantity=14)
         public void andAFourth() { /* no body */ }
 
         @SuppressWarnings("unused")
         @DefaultNumericAnnotation(12)
         private void privateMethod() { /* no body */ }
+    }
+
+
+    public static class ClassWithAnnotatedParameters
+    {
+        public String foo(
+                @ParamAnnotation1("argle") String argle,
+                @ParamAnnotation1("bargle") @ParamAnnotation2 String bargle,
+                String wargle)
+        {
+            return argle + bargle + wargle;
+        }
+
     }
 
 
@@ -491,7 +520,7 @@ public class TestAnnotationParser
 
         Annotation anno = annos.get(0);
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.TwoParamAnnotation(name=\"foo\", quantity=12)",
+                     "@TestAnnotationParser.MultivalueAnnotation(name=\"foo\", quantity=12)",
                      anno.toString());
         assertEquals("count of parameters",
                      2,
@@ -565,7 +594,7 @@ public class TestAnnotationParser
         Map<String,Object> filter2 = new HashMap<String,Object>();
         filter2.put("name", "foo");
         filter2.put("quantity", Integer.valueOf(12));
-        List<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.TwoParamAnnotation",
+        List<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.MultivalueAnnotation",
                                                        filter2);
         assertEquals("count of methods, (foo,12)", 1, methods2.size());
         assertEquals("name of method, (foo,12)",   "aThirdMethod", methods2.get(0).getName());
@@ -574,7 +603,7 @@ public class TestAnnotationParser
 
         Map<String,Object> filter3 = new HashMap<String,Object>();
         filter3.put("name", "foo");
-        List<Method> methods3 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.TwoParamAnnotation",
+        List<Method> methods3 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.MultivalueAnnotation",
                                                        filter3);
 
         // again, we have no guarantee for return order, so need to extract names
@@ -628,4 +657,35 @@ public class TestAnnotationParser
         List<Annotation> annos2 = ap2.getMethodAnnotations(method);
         assertEquals("number of annotations, missing method", 0, annos2.size());
     }
+
+
+    @Test
+    public void testGetAnnotationsForParameters() throws Exception
+    {
+        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedParameters.class));
+        Method method = getMethod(ap, "foo");
+
+        List<Map<String,Annotation>> annos = ap.getParameterAnnotatons(method);
+        assertEquals("number of parameters", 3,  annos.size());
+
+        Map<String,Annotation> param1 = annos.get(0);
+        assertEquals("param 1 #/annotations",   1, param1.size());
+        assertEquals("param 1 anno 1 value",    "argle",
+                                                param1.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1").getValue().asScalar());
+
+        Map<String,Annotation> param2 = annos.get(1);
+        assertEquals("param 2 #/annotations",   2, param2.size());
+        assertEquals("param 2 anno 1 value",    "bargle",
+                                                param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1").getValue().asScalar());
+        assertNotNull("param 2 anno 2 exists ", param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation2"));
+
+        Map<String,Annotation> param3 = annos.get(2);
+        assertEquals("param 3 #/annotations",   0, param3.size());
+
+        // check the explicit retrieval method
+
+        Annotation param2anno1 = ap.getParameterAnnotation(method, 1, "com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1");
+        assertSame("retrieved annotation by position/class", param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1"), param2anno1);
+    }
+
 }
