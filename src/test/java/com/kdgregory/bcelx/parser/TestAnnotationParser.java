@@ -32,6 +32,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.apache.bcel.classfile.ClassParser;
+import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 
@@ -181,6 +182,22 @@ public class TestAnnotationParser
     }
 
 
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface FieldAnnotation1
+    {
+        String value();
+    }
+
+
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.CLASS)
+    public @interface FieldAnnotation2
+    {
+        // nothing here
+    }
+
+
 //----------------------------------------------------------------------------
 //  And classes that use those annotations
 //----------------------------------------------------------------------------
@@ -267,7 +284,18 @@ public class TestAnnotationParser
         {
             return argle + bargle + wargle;
         }
+    }
 
+
+    public static class ClassWithAnnotatedFields
+    {
+        @FieldAnnotation1("foo")
+        protected String foo;
+
+        @FieldAnnotation1("bar") @FieldAnnotation2
+        protected int bar;
+
+        protected String baz;
     }
 
 
@@ -688,4 +716,32 @@ public class TestAnnotationParser
         assertSame("retrieved annotation by position/class", param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1"), param2anno1);
     }
 
+
+    @Test
+    public void testGetAnnotationsForFields() throws Exception
+    {
+        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedFields.class));
+
+        for (Field field : ap.getParsedClass().getFields())
+        {
+            Map<String,Annotation> annos = ap.getFieldAnnotations(field);
+            if (field.getName().equals("foo"))
+            {
+                assertEquals("field 'foo', #/annotations", 1, annos.size());
+                assertEquals("field 'foo', anno 1 value",  "foo",
+                                                           annos.get("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1").getValue().asScalar());
+            }
+            else if (field.getName().equals("bar"))
+            {
+                assertEquals("field 'bar', #/annotations",  2, annos.size());
+                assertEquals("field 'foo', anno 1 value",   "bar",
+                                                            annos.get("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1").getValue().asScalar());
+                assertNotNull("field 'foo', anno 2 exists", annos.get("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation2"));
+            }
+            else if (field.getName().equals("baz"))
+            {
+                assertEquals("field 'baz', #/annotations", 0, annos.size());
+            }
+        }
+    }
 }

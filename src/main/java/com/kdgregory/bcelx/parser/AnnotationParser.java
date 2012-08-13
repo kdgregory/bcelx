@@ -29,6 +29,7 @@ import org.apache.bcel.classfile.Attribute;
 import org.apache.bcel.classfile.ConstantObject;
 import org.apache.bcel.classfile.ConstantPool;
 import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.classfile.Unknown;
@@ -71,6 +72,7 @@ public class AnnotationParser
     private Map<String,Annotation> classAnnotations;
     private Map<Method,Map<String,Annotation>> methodAnnotations;
     private Map<Method,List<Map<String,Annotation>>> parameterAnnotations;
+    private Map<Field,Map<String,Annotation>> fieldAnnotations;
 
 
     public AnnotationParser(JavaClass classFile)
@@ -282,12 +284,28 @@ public class AnnotationParser
     }
 
 
+    /**
+     *  Returns all annotations for a single field, keyed by the annotation
+     *  classname. Returns an empty map if the field is not annotated.
+     */
+    public Map<String,Annotation> getFieldAnnotations(Field field)
+    {
+        lazyBuildFieldAnnotationMap();
+
+        Map<String,Annotation> annos = fieldAnnotations.get(field);
+        if (annos == null)
+            annos = Collections.emptyMap();
+
+        return annos;
+    }
+
+
 //----------------------------------------------------------------------------
 //  Internals
 //----------------------------------------------------------------------------
 
     /**
-     *  Builds the list of annotations from the class attributes.
+     *  Builds the list of annotations for the class as a whole.
      */
     private void lazyBuildClassAnnotationMap()
     {
@@ -335,7 +353,27 @@ public class AnnotationParser
         for (Method method : classFile.getMethods())
         {
             List<Map<String,Annotation>> annos = parseParameterAnnotations(method);
-            parameterAnnotations.put(method, Collections.unmodifiableList(annos));
+            parameterAnnotations.put(method, annos);
+        }
+    }
+
+    /**
+     *  Builds the map of member variables to their annotations.
+     */
+    private void lazyBuildFieldAnnotationMap()
+    {
+        if (fieldAnnotations != null)
+            return;
+
+        fieldAnnotations = new IdentityHashMap<Field,Map<String,Annotation>>();
+        for (Field field : classFile.getFields())
+        {
+            Map<String,Annotation> annoMap = new LinkedHashMap<String,Annotation>();
+            fieldAnnotations.put(field, annoMap);
+            for (Annotation anno : parseStandardAnnotations(field.getAttributes()))
+            {
+                annoMap.put(anno.getClassName(), anno);
+            }
         }
     }
 
