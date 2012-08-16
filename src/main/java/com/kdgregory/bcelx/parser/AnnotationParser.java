@@ -19,6 +19,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -51,6 +52,16 @@ import com.kdgregory.bcelx.classfile.Annotation.ScalarValue;
  *  Any of the methods from this class can throw {@link ParseException}. This is a
  *  runtime exception; it almost certainly indicates a bug in the parser (or a bad
  *  classfile, which is equally unrecoverable).
+ *  <p>
+ *  This class does not attempt to make defensive copies of its internal state. If
+ *  you muck with return values, don't expect them to be valid later. To keep you
+ *  honest, most of the methods return immutable empty collections if there isn't
+ *  any real data.
+ *  <p>
+ *  This class attempts to maintain the order that annotations appear in the classfile,
+ *  which should in turn mimic the order that they appear in the sourcefile. If you mix
+ *  runtime-visible and runtime-invisible annotations on the same target, however,
+ *  there are no guarantees about which will appear first.
  */
 public class AnnotationParser
 {
@@ -65,10 +76,16 @@ public class AnnotationParser
 //----------------------------------------------------------------------------
 
     // initialized by ctor
+
     private JavaClass classFile;
     private ConstantPool cp;
 
-    // lazily initialized
+    // - lookup tables for annotations; these get filled the first time a given
+    //   annotation target (class, method, parameter, field) is requested
+    // - all Map<String,Annotation> are keyed by the annotation classname, and are
+    //   LinkedHashMap (so that the order of retrieval should match the order that
+    //   the annotations appear on the target, ex visible/invisible split)
+
     private Map<String,Annotation> classAnnotations;
     private Map<Method,Map<String,Annotation>> methodAnnotations;
     private Map<Method,List<Map<String,Annotation>>> parameterAnnotations;
@@ -88,8 +105,7 @@ public class AnnotationParser
 
     /**
      *  Returns the parsed class object. This is a convenience for callers who may
-     *  be passed just the parser instance (because whoever created the parser can
-     *  simply hold onto the parsed class).
+     *  be given just the parser instance.
      */
     public JavaClass getParsedClass()
     {
@@ -98,9 +114,10 @@ public class AnnotationParser
 
 
     /**
-     *  Returns all annotations on a class, visible and invisiable.
+     *  Returns all annotations on a class, visible and invisiable. If the class has
+     *  no annotations, returns an empty collection.
      */
-    public List<Annotation> getClassAnnotations()
+    public Collection<Annotation> getClassAnnotations()
     {
         lazyBuildClassAnnotationMap();
         List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
@@ -110,10 +127,10 @@ public class AnnotationParser
 
 
     /**
-     *  Returns the runtime-visible annotations for this class, an empty list if
+     *  Returns the runtime-visible annotations for this class, an empty collection if
      *  there aren't any such annotations.
      */
-    public List<Annotation> getClassVisibleAnnotations()
+    public Collection<Annotation> getClassVisibleAnnotations()
     {
         lazyBuildClassAnnotationMap();
         List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
@@ -127,10 +144,10 @@ public class AnnotationParser
 
 
     /**
-     *  Returns the runtime-invisible annotations for this class, an empty list if
+     *  Returns the runtime-invisible annotations for this class, an empty collection if
      *  there aren't any such annotations.
      */
-    public List<Annotation> getClassInvisibleAnnotations()
+    public Collection<Annotation> getClassInvisibleAnnotations()
     {
         lazyBuildClassAnnotationMap();
         List<Annotation> result = new ArrayList<Annotation>(classAnnotations.size());
@@ -144,8 +161,8 @@ public class AnnotationParser
 
 
     /**
-     *  Returns a single class-level annotation (visible or invisible), null if
-     *  it doesn't exist.
+     *  Retrieves a single class-level annotation (visible or invisible) by its classname.
+     *  Returns null if the annotation is not present.
      */
     public Annotation getClassAnnotation(String annoClass)
     {
@@ -155,17 +172,17 @@ public class AnnotationParser
 
 
     /**
-     *  Returns a list of the methods that are marked with the specified
-     *  annotation (visible or invisible), an empty list if there aren't any.
+     *  Returns the methods that are marked with the specified annotation (visible
+     *  or invisible), an empty collection if there aren't any.
      *  <p>
-     *  This method examines all methods that are declared by the class, including
-     *  private and protected methods. Caller is responsible for filtering the list
-     *  based on method attributes, and/or loading any superclasses/interfaces.
+     *  This method operates on <code>declared</code> methods, including private
+     *  and protected methods. It will not return any methods declared by the
+     *  superclass.
      *  <p>
      *  The order of the returned methods is not guaranteed, and may differ between
      *  invocations.
      */
-    public List<Method> getAnnotatedMethods(String className)
+    public Collection<Method> getAnnotatedMethods(String className)
     {
         List<Method> result = new ArrayList<Method>();
 
@@ -182,10 +199,9 @@ public class AnnotationParser
 
 
     /**
-     *  Returns a list of the methods that are marked with the specified
-     *  annotation (visible or invisible), and whose parameters match the
-     *  name-value pairs passed in the provided map. Returns an empty list
-     *  if there are no methods that match.
+     *  Returns the methods that are marked with the specified annotation (visible
+     *  or invisible), and whose parameters match the name-value pairs passed in
+     *  the provided map. Returns an empty list if there are no methods that match.
      *  <p>
      *  Parameter values must be an appropriate type, as specified by
      *  <code>Annotation.ParamValue.valueEquals()</code>. Parameters that do
@@ -200,7 +216,7 @@ public class AnnotationParser
      *  The order of the returned methods is not guaranteed, and may differ between
      *  invocations.
      */
-    public List<Method> getAnnotatedMethods(String className, Map<String,Object> filter)
+    public Collection<Method> getAnnotatedMethods(String className, Map<String,Object> filter)
     {
         List<Method> result = new ArrayList<Method>();
 
@@ -226,11 +242,11 @@ public class AnnotationParser
 
 
     /**
-     *  Returns all annotations for the passed method, an empty list if there are
-     *  no annotations or if the method does not belong to the class associated
-     *  with this parser.
+     *  Returns all annotations for the passed method, an empty collection if there are
+     *  no annotations or if the method does not belong to the class associated with
+     *  this parser.
      */
-    public List<Annotation> getMethodAnnotations(Method method)
+    public Collection<Annotation> getMethodAnnotations(Method method)
     {
         lazyBuildMethodAnnotationMap();
         Map<String,Annotation> annos = methodAnnotations.get(method);
