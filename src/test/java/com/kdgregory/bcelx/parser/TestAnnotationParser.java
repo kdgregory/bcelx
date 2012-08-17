@@ -113,7 +113,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface DefaultStringAnnotation
+    public @interface StringValuedAnnotation
     {
         String value();
     }
@@ -121,7 +121,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface DefaultNumericAnnotation
+    public @interface NumericValuedAnnotation
     {
         int value();
     }
@@ -129,7 +129,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface DefaultClassAnnotation
+    public @interface ClassValuedAnnotation
     {
         Class<?> value();
     }
@@ -137,7 +137,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface DefaultEnumAnnotation
+    public @interface EnumValuedAnnotation
     {
         MyEnum value();
     }
@@ -145,7 +145,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface DefaultStringArrayAnnotation
+    public @interface StringArrayValuedAnnotation
     {
         String[] value();
     }
@@ -153,7 +153,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface DefaultIntArrayAnnotation
+    public @interface IntArrayValuedAnnotation
     {
         int[] value();
     }
@@ -161,7 +161,7 @@ public class TestAnnotationParser
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface MultivalueAnnotation
+    public @interface MultiValueAnnotation
     {
         String name();
         int quantity();
@@ -210,69 +210,69 @@ public class TestAnnotationParser
     { /* nothing here */ }
 
 
-    @DefaultStringAnnotation("foo")
+    @StringValuedAnnotation("foo")
     public static class DefaultStringAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultNumericAnnotation(12)
+    @NumericValuedAnnotation(12)
     public static class DefaultNumericAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultClassAnnotation(String.class)
+    @ClassValuedAnnotation(String.class)
     public static class DefaultClassAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultClassAnnotation(MyLocalClass.class)
+    @ClassValuedAnnotation(MyLocalClass.class)
     public static class DefaultInnerClassAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultEnumAnnotation(MyEnum.RED)
+    @EnumValuedAnnotation(MyEnum.RED)
     public static class DefaultEnumAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultStringArrayAnnotation({"foo", "bar"})
+    @StringArrayValuedAnnotation({"foo", "bar"})
     public static class DefaultStringArrayAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultIntArrayAnnotation({1, 10, 100})
+    @IntArrayValuedAnnotation({1, 10, 100})
     public static class DefaultNumericArrayAnnotatedClass
     { /* nothing here */ }
 
 
-    @MultivalueAnnotation(name="foo", quantity=12)
+    @MultiValueAnnotation(name="foo", quantity=12)
     public static class TwoParamAnnotatedClass
     { /* nothing here */ }
 
 
-    @DefaultStringAnnotation("foo")
-    @DefaultNumericAnnotation(12)
+    @StringValuedAnnotation("foo")
+    @NumericValuedAnnotation(12)
     public static class MultiplyAnnotatedClass
     { /* nothing here */ }
 
 
     public static class ClassWithAnnotatedMethods
     {
-        @DefaultStringAnnotation("foo")
+        @StringValuedAnnotation("foo")
         public void myMethod() { /* no body */ }
 
-        @DefaultStringAnnotation("bar")
-        @DefaultEnumAnnotation(MyEnum.BLUE)
+        @StringValuedAnnotation("bar")
+        @EnumValuedAnnotation(MyEnum.BLUE)
         public void myOtherMethod() { /* no body */ }
 
-        @MultivalueAnnotation(name="foo", quantity=12)
+        @MultiValueAnnotation(name="foo", quantity=12)
         public void aThirdMethod() { /* no body */ }
 
-        @MultivalueAnnotation(name="foo", quantity=14)
+        @MultiValueAnnotation(name="foo", quantity=14)
         public void andAFourth() { /* no body */ }
 
         @SuppressWarnings("unused")
-        @DefaultNumericAnnotation(12)
+        @NumericValuedAnnotation(12)
         private void privateMethod() { /* no body */ }
     }
 
@@ -373,7 +373,7 @@ public class TestAnnotationParser
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.DefaultStringAnnotation(\"foo\")",
+                     "@TestAnnotationParser.StringValuedAnnotation(\"foo\")",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -400,7 +400,7 @@ public class TestAnnotationParser
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.DefaultNumericAnnotation(12)",
+                     "@TestAnnotationParser.NumericValuedAnnotation(12)",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -429,10 +429,10 @@ public class TestAnnotationParser
 
         Annotation anno1 = annos1.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.DefaultClassAnnotation(java.lang.String.class)",
+                     "@TestAnnotationParser.ClassValuedAnnotation(java.lang.String.class)",
                      anno1.toString());
         assertEquals("simpleName of annotation",
-                     "@TestAnnotationParser.DefaultClassAnnotation",
+                     "@TestAnnotationParser.ClassValuedAnnotation",
                      anno1.getName());
         assertEquals("count of parameters",
                      1,
@@ -459,7 +459,7 @@ public class TestAnnotationParser
 
         Annotation anno2 = annos2.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.DefaultClassAnnotation(com.kdgregory.bcelx.parser.TestAnnotationParser.MyLocalClass.class)",
+                     "@TestAnnotationParser.ClassValuedAnnotation(com.kdgregory.bcelx.parser.TestAnnotationParser.MyLocalClass.class)",
                      anno2.toString());
         assertEquals("count of parameters",
                      1,
@@ -490,7 +490,7 @@ public class TestAnnotationParser
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.DefaultEnumAnnotation(com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.RED)",
+                     "@TestAnnotationParser.EnumValuedAnnotation(com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.RED)",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -521,7 +521,7 @@ public class TestAnnotationParser
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.DefaultStringArrayAnnotation({\"foo\",\"bar\"})",
+                     "@TestAnnotationParser.StringArrayValuedAnnotation({\"foo\",\"bar\"})",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -550,7 +550,7 @@ public class TestAnnotationParser
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.MultivalueAnnotation(name=\"foo\", quantity=12)",
+                     "@TestAnnotationParser.MultiValueAnnotation(name=\"foo\", quantity=12)",
                      anno.toString());
         assertEquals("count of parameters",
                      2,
@@ -573,13 +573,13 @@ public class TestAnnotationParser
         Iterator<Annotation> annoItx = annos.iterator();
         assertEquals("count of runtime visible annotations", 2, annos.size());
         assertEquals("string value of annotation 0",
-                     "@TestAnnotationParser.DefaultStringAnnotation(\"foo\")",
+                     "@TestAnnotationParser.StringValuedAnnotation(\"foo\")",
                      annoItx.next().toString());
         assertEquals("string value of annotation 1",
-                     "@TestAnnotationParser.DefaultNumericAnnotation(12)",
+                     "@TestAnnotationParser.NumericValuedAnnotation(12)",
                      annoItx.next().toString());
 
-        Annotation anno = ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultNumericAnnotation");
+        Annotation anno = ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.NumericValuedAnnotation");
         assertEquals("value of explicitly retrieved annotation", 12, anno.getValue().asScalar());
     }
 
@@ -589,7 +589,7 @@ public class TestAnnotationParser
     {
         AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedMethods.class));
 
-        Collection<Method> methods1 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultStringAnnotation");
+        Collection<Method> methods1 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation");
         assertEquals("number of annotated methods", 2, methods1.size());
 
         // can't guarantee order of return, so we'll extract name and validate
@@ -600,7 +600,7 @@ public class TestAnnotationParser
         assertTrue("annotated methods includes myOtherMethod()", methodNames.contains("myOtherMethod"));
 
 
-        Collection<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultNumericAnnotation");
+        Collection<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.NumericValuedAnnotation");
         assertEquals("number of annotated private methods", 1, methods2.size());
         assertEquals("name of annotated private method", "privateMethod", methods2.iterator().next().getName());
     }
@@ -616,7 +616,7 @@ public class TestAnnotationParser
         Map<String,Object> filter1 = new HashMap<String,Object>();
         filter1.put("value", "foo");
         Collection<Method> methods1 = ap.getAnnotatedMethods(
-                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultStringAnnotation",
+                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation",
                                         filter1);
         assertEquals("count of methods, string(foo)", 1, methods1.size());
         assertEquals("name of method, string(foo)",   "myMethod", methods1.iterator().next().getName());
@@ -627,7 +627,7 @@ public class TestAnnotationParser
         filter2.put("name", "foo");
         filter2.put("quantity", Integer.valueOf(12));
         Collection<Method> methods2 = ap.getAnnotatedMethods(
-                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.MultivalueAnnotation",
+                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.MultiValueAnnotation",
                                         filter2);
         assertEquals("count of methods, (foo,12)", 1, methods2.size());
         assertEquals("name of method, (foo,12)",   "aThirdMethod", methods2.iterator().next().getName());
@@ -637,7 +637,7 @@ public class TestAnnotationParser
         Map<String,Object> filter3 = new HashMap<String,Object>();
         filter3.put("name", "foo");
         Collection<Method> methods3 = ap.getAnnotatedMethods(
-                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.MultivalueAnnotation",
+                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.MultiValueAnnotation",
                                         filter3);
 
         // we have no guarantee for return order, so need to extract names
@@ -679,7 +679,7 @@ public class TestAnnotationParser
 
         // and that we can get a particular named annotation
 
-        Annotation anno1 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultEnumAnnotation");
+        Annotation anno1 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.EnumValuedAnnotation");
         assertEquals("get by class, param", MyEnum.BLUE, anno1.getValue().asEnum());
 
         // and that we don't blow up if the annotation doesn't exist
