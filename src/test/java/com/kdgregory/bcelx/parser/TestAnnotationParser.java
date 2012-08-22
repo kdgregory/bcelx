@@ -14,7 +14,6 @@
 
 package com.kdgregory.bcelx.parser;
 
-import java.io.InputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -33,39 +32,19 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.Field;
-import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 
-import net.sf.kdgcommons.io.IOUtil;
-import net.sf.kdgcommons.lang.StringUtil;
-
+import com.kdgregory.bcelx.AbstractTest;
 import com.kdgregory.bcelx.classfile.Annotation;
 
 
 public class TestAnnotationParser
+extends AbstractTest
 {
 //----------------------------------------------------------------------------
 //  Support Code
 //----------------------------------------------------------------------------
-
-    private static JavaClass loadClass(Class<?> klass)
-    throws Exception
-    {
-        InputStream in = null;
-        try
-        {
-            String className = StringUtil.extractRightOfLast(klass.getName(), ".") + ".class";
-            in = klass.getResourceAsStream(className);
-            return new ClassParser(in, className).parse();
-        }
-        finally
-        {
-            IOUtil.closeQuietly(in);
-        }
-    }
-
 
     private static Method getMethod(AnnotationParser ap, String methodName)
     {
@@ -308,7 +287,7 @@ public class TestAnnotationParser
     @Test
     public void testClassMarkerAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(MarkedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(MarkedClass.class));
 
         Collection<Annotation> annos1 = ap.getClassAnnotations();
         assertEquals("count of total class annotations", 2, annos1.size());
@@ -366,7 +345,7 @@ public class TestAnnotationParser
     @Test
     public void testStringValuedAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(DefaultStringAnnotatedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(DefaultStringAnnotatedClass.class));
 
         Collection<Annotation> annos = ap.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos.size());
@@ -393,7 +372,7 @@ public class TestAnnotationParser
     @Test
     public void testNumberValuedAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(DefaultNumericAnnotatedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(DefaultNumericAnnotatedClass.class));
 
         Collection<Annotation> annos = ap.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos.size());
@@ -422,7 +401,7 @@ public class TestAnnotationParser
     @Test
     public void testClassValuedAnnotations() throws Exception
     {
-        AnnotationParser ap1 = new AnnotationParser(loadClass(DefaultClassAnnotatedClass.class));
+        AnnotationParser ap1 = new AnnotationParser(loadNestedClass(DefaultClassAnnotatedClass.class));
 
         Collection<Annotation> annos1 = ap1.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos1.size());
@@ -452,7 +431,7 @@ public class TestAnnotationParser
                     anno1Value.valueEquals("java.lang.String"));
 
 
-        AnnotationParser ap2 = new AnnotationParser(loadClass(DefaultInnerClassAnnotatedClass.class));
+        AnnotationParser ap2 = new AnnotationParser(loadNestedClass(DefaultInnerClassAnnotatedClass.class));
 
         Collection<Annotation> annos2 = ap2.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos2.size());
@@ -483,7 +462,7 @@ public class TestAnnotationParser
     @Test
     public void testEnumValuedAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(DefaultEnumAnnotatedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(DefaultEnumAnnotatedClass.class));
 
         Collection<Annotation> annos = ap.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos.size());
@@ -514,7 +493,7 @@ public class TestAnnotationParser
     @Test
     public void testArrayValuedAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(DefaultStringArrayAnnotatedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(DefaultStringArrayAnnotatedClass.class));
 
         Collection<Annotation> annos = ap.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos.size());
@@ -543,7 +522,7 @@ public class TestAnnotationParser
     @Test
     public void testMultiParamAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(TwoParamAnnotatedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(TwoParamAnnotatedClass.class));
 
         Collection<Annotation> annos = ap.getClassVisibleAnnotations();
         assertEquals("count of runtime visible annotations", 1, annos.size());
@@ -567,7 +546,7 @@ public class TestAnnotationParser
     @Test
     public void testMultipleAnnotations() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(MultiplyAnnotatedClass.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(MultiplyAnnotatedClass.class));
 
         Collection<Annotation> annos = ap.getClassVisibleAnnotations();
         Iterator<Annotation> annoItx = annos.iterator();
@@ -587,7 +566,7 @@ public class TestAnnotationParser
     @Test
     public void testRetrieveAnnotatedMethod() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedMethods.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedMethods.class));
 
         Collection<Method> methods1 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation");
         assertEquals("number of annotated methods", 2, methods1.size());
@@ -609,7 +588,7 @@ public class TestAnnotationParser
     @Test
     public void testRetrieveAnnotatedMethodWithFilter() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedMethods.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedMethods.class));
 
         // test 1: a one-parameter annotation
 
@@ -654,7 +633,7 @@ public class TestAnnotationParser
     @Test
     public void testRetrieveAnnotatedMethodDoesntThrowWithBadParam() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedMethods.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedMethods.class));
 
         Map<String,Object> filter = new HashMap<String,Object>();
         filter.put("argle", "bargle");
@@ -666,7 +645,7 @@ public class TestAnnotationParser
     @Test
     public void testGetAnnotationsForMethod() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedMethods.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedMethods.class));
         Method method = getMethod(ap, "myOtherMethod");
 
         // all of the method annotations are runtime-visible, so we should get them in order
@@ -689,7 +668,7 @@ public class TestAnnotationParser
 
         // and finally, that we don't blow up if the method itself doesn't exist
 
-        AnnotationParser ap2 = new AnnotationParser(loadClass(DefaultStringAnnotatedClass.class));
+        AnnotationParser ap2 = new AnnotationParser(loadNestedClass(DefaultStringAnnotatedClass.class));
         Collection<Annotation> annos2 = ap2.getMethodAnnotations(method);
         assertEquals("number of annotations, missing method", 0, annos2.size());
     }
@@ -698,7 +677,7 @@ public class TestAnnotationParser
     @Test
     public void testGetAnnotationsForParameters() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedParameters.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedParameters.class));
         Method method = getMethod(ap, "foo");
 
         List<Map<String,Annotation>> annos = ap.getParameterAnnotatons(method);
@@ -728,7 +707,7 @@ public class TestAnnotationParser
     @Test
     public void testGetAnnotationsForFields() throws Exception
     {
-        AnnotationParser ap = new AnnotationParser(loadClass(ClassWithAnnotatedFields.class));
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedFields.class));
 
         for (Field field : ap.getParsedClass().getFields())
         {
