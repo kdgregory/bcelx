@@ -8,7 +8,50 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
+
+    <name>BCELX - Extensions to Apache BCEL</name>
+    <description>
+        Apache BCEL has not been updated since 2006, and the released version does not support JDK 1.5
+        features such as annotations. This library is an extension to BCEL (you will need BCEL to use
+        it) that provides support for JDK 1.5 features along with some utilities. Everything is driven
+        by the needs of my other projects.
+    </description>
+    <url>https://github.com/kdgregory/bcelx</url>
+
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+
+    <developers>
+        <developer>
+            <id>kdgregory</id>
+            <name>Keith D Gregory</name>
+            <url>http://www.kdgregory.com</url>
+        </developer>
+    </developers>
+
+
+    <scm>
+        <connection>scm:git:git://github.com/kdgregory/bcelx.git</connection>
+        <developerConnection>scm:git:git:git@github.com:kdgregory/bcelx.git</developerConnection>
+        <url>https://github.com/kdgregory/bcelx</url>
+    </scm>
+
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
