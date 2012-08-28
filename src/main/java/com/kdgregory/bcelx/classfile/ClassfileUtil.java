@@ -63,21 +63,26 @@ public class ClassfileUtil
 //  Internals
 //----------------------------------------------------------------------------
 
-    private static String convertClassname(String name)
+    // This method is somewhat confusingly named: it does convert a signature,
+    // but also handles "internal" classnames that don't follow the signature
+    // format. CONSTANT_Class_info can have both, and I didn' want to replicate
+    // 80% of this method with some external tests to see what should be called.
+    private static void addClassFromSignature(String name, Set<String> result)
     {
-        return name.replace('/', '.').replace('$', '.');
-    }
+        while (name.startsWith("["))
+            name = name.substring(1);
 
+        if (name.length() == 1)
+            return; // primitive type, we don't care about it
 
-    private static void addClassFromSignature(String value, Set<String> result)
-    {
-        while (value.startsWith("["))
-            value = value.substring(1);
+        if (name.startsWith("L") & name.endsWith(";"))
+        {
+            name = name.substring(1, name.length() - 1);
+        }
 
-        if (!(value.startsWith("L") & value.endsWith(";")))
-            return; // not an object, we don't care
+        name = name.replace('/', '.').replace('$', '.');
 
-        result.add(ClassUtil.internalNameToExternal(value));
+        result.add(name);
     }
 
 
@@ -90,22 +95,7 @@ public class ClassfileUtil
             if (cc instanceof ConstantClass)
             {
                 String className = ((ConstantClass)cc).getBytes(cp);
-                result.add(convertClassname(className));
-            }
-            if (cc instanceof ConstantFieldref)
-            {
-                String className = ((ConstantFieldref)cc).getClass(cp);
-                result.add(convertClassname(className));
-            }
-            if (cc instanceof ConstantMethodref)
-            {
-                String className = ((ConstantMethodref)cc).getClass(cp);
-                result.add(convertClassname(className));
-            }
-            if (cc instanceof ConstantInterfaceMethodref)
-            {
-                String className = ((ConstantInterfaceMethodref)cc).getClass(cp);
-                result.add(convertClassname(className));
+                addClassFromSignature(className, result);
             }
         }
     }

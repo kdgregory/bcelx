@@ -79,6 +79,15 @@ extends AbstractTest
         {
             return new Double[1];
         }
+
+        // this should put an array reference in CONSTANT_Class
+        public void varargMethod(StringBuilder... builders)
+        {
+            for (Object builder : builders)
+            {
+                builder.getClass(); // a no-op to stop Eclipse warnings
+            }
+        }
     }
 
 
@@ -103,6 +112,12 @@ extends AbstractTest
         assertTrue("method annotation",     references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation"));
         assertTrue("field annotation",      references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1"));
         assertTrue("parameter annotation",  references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1"));
-    }
 
+        // regression test: some classes were not getting converted
+        for (String name : references)
+        {
+            if (name.startsWith("[") || name.endsWith(";"))
+                fail("unconverted classname: " + name);
+        }
+    }
 }
