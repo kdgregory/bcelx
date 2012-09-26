@@ -177,6 +177,9 @@ public class Annotation
         /** An enumeration value. */
         ENUM,
 
+        /** A nested annotation */
+        ANNOTATION,
+
         /** An array of values. */
         ARRAY
     }
@@ -275,6 +278,21 @@ public class Annotation
          *  loaded if necessary. Will throw if the class cannot be loaded.
          */
         public Enum<?> asEnum()
+        {
+            throw new ClassfileException("this method not appropriate for " + getType() + " values");
+        }
+
+
+        /**
+         *  Returns the instance for an <code>ANNOTATION</code> value.
+         *  <p>
+         *  Note that this is a BCELX <code>Annotation</code> object, containing nested
+         *  parameters as defined in the classfile; it is not the annotation's actual
+         *  class (and therefore does not require the annotation class to be on the
+         *  classpath). Note also that, regardless of the original annotation'sretention
+         *  policy, the returned value will be marked as <code>RUNTIME</code>.
+         */
+        public Annotation asAnnotation()
         {
             throw new ClassfileException("this method not appropriate for " + getType() + " values");
         }
@@ -449,6 +467,47 @@ public class Annotation
             {
                 throw new ClassfileException("unable to load class: " + enumClassName, ex);
             }
+        }
+    }
+
+
+    public static class AnnotationValue
+    extends ParamValue
+    {
+        private Annotation annotation;
+        private String stringValue;
+
+        public AnnotationValue(Annotation annotation)
+        {
+            super(ParamType.ANNOTATION);
+            this.annotation = annotation;
+        }
+
+        @Override
+        public String toString()
+        {
+            if (stringValue == null)
+            {
+                stringValue = annotation.toString();
+            }
+            return stringValue;
+        }
+
+        @Override
+        public Annotation asAnnotation()
+        {
+            return annotation;
+        }
+
+        @Override
+        public boolean valueEquals(Object obj)
+        {
+            if (obj instanceof Annotation)
+                return asAnnotation().equals(obj);
+            else if (obj instanceof String)
+                return toString().equals(obj);
+            else
+                return false;
         }
     }
 

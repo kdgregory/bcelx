@@ -39,6 +39,7 @@ import net.sf.kdgcommons.lang.ClassUtil;
 
 import com.kdgregory.bcelx.classfile.Annotation;
 import com.kdgregory.bcelx.classfile.Annotation.ArrayValue;
+import com.kdgregory.bcelx.classfile.Annotation.AnnotationValue;
 import com.kdgregory.bcelx.classfile.Annotation.ClassValue;
 import com.kdgregory.bcelx.classfile.Annotation.EnumValue;
 import com.kdgregory.bcelx.classfile.Annotation.ParamType;
@@ -555,6 +556,9 @@ public class AnnotationParser
                     arrayValues.add(parseAnnotationValue(in));
                 }
                 return new ArrayValue(arrayValues);
+            case '@':
+                Annotation nested = parseAnnotationFromStream(in, RetentionPolicy.RUNTIME);
+                return new AnnotationValue(nested);
             default :
                 throw new ParseException("unsupported value tag: " + tag);
         }

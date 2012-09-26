@@ -124,6 +124,14 @@ extends AbstractTest
 
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
+    public @interface AnnotationValuedAnnotation
+    {
+        StringValuedAnnotation value();
+    }
+
+
+    @Target({ElementType.TYPE, ElementType.METHOD})
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface StringArrayValuedAnnotation
     {
         String[] value();
@@ -211,6 +219,11 @@ extends AbstractTest
 
     @EnumValuedAnnotation(MyEnum.RED)
     public static class DefaultEnumAnnotatedClass
+    { /* nothing here */ }
+
+
+    @AnnotationValuedAnnotation(@StringValuedAnnotation("foo"))
+    public static class DefaultAnnotationAnnotatedClass
     { /* nothing here */ }
 
 
@@ -487,6 +500,39 @@ extends AbstractTest
                     annoValue.valueEquals("com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.RED"));
         assertFalse("equality to incorrect value, as String",
                     annoValue.valueEquals("com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.BLUE"));
+    }
+
+
+    @Test
+    public void testAnnotationValuedAnnotations() throws Exception
+    {
+        AnnotationParser ap = new AnnotationParser(loadNestedClass(DefaultAnnotationAnnotatedClass.class));
+
+        Collection<Annotation> annos = ap.getClassVisibleAnnotations();
+        assertEquals("count of runtime visible annotations", 1, annos.size());
+
+        Annotation anno = annos.iterator().next();
+        assertEquals("string value of annotation",
+                     "@TestAnnotationParser.AnnotationValuedAnnotation(@TestAnnotationParser.StringValuedAnnotation(\"foo\"))",
+                     anno.toString());
+        assertEquals("count of parameters",
+                     1,
+                     anno.getParams().size());
+
+        Annotation.ParamValue annoValue = anno.getValue();
+        assertTrue("value/string equality",
+                   annoValue.valueEquals("@TestAnnotationParser.StringValuedAnnotation(\"foo\")"));
+
+        Annotation nestedAnno = annoValue.asAnnotation();
+        assertEquals("value classname",
+                     "com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation",
+                     nestedAnno.getClassName());
+
+
+        Annotation.ParamValue nestedValue = nestedAnno.getValue();
+        assertEquals("nested value",
+                     "foo",
+                     nestedValue.asScalar());
     }
 
 
