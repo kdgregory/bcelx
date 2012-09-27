@@ -20,16 +20,11 @@ import java.util.TreeSet;
 
 import org.apache.bcel.classfile.Constant;
 import org.apache.bcel.classfile.ConstantClass;
-import org.apache.bcel.classfile.ConstantFieldref;
-import org.apache.bcel.classfile.ConstantInterfaceMethodref;
-import org.apache.bcel.classfile.ConstantMethodref;
 import org.apache.bcel.classfile.ConstantPool;
 import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.Type;
-
-import net.sf.kdgcommons.lang.ClassUtil;
 
 import com.kdgregory.bcelx.parser.AnnotationParser;
 
@@ -127,19 +122,35 @@ public class ClassfileUtil
     {
         AnnotationParser ap = new AnnotationParser(parsedClass);
         for (Annotation anno : ap.getClassAnnotations())
-            result.add(anno.getClassName());
+            addAnnotation(anno, result);
 
         for (Method method : parsedClass.getMethods())
         {
             for (Annotation anno : ap.getMethodAnnotations(method))
-                result.add(anno.getClassName());
-            for (Map<String,Annotation> anno : ap.getParameterAnnotatons(method))
-                result.addAll(anno.keySet());
+                addAnnotation(anno, result);
+            for (Map<String,Annotation> annos : ap.getParameterAnnotatons(method))
+            {
+                for (Annotation anno : annos.values())
+                    addAnnotation(anno, result);
+            }
         }
 
         for (Field field : parsedClass.getFields())
         {
-            result.addAll(ap.getFieldAnnotations(field).keySet());
+            Map<String,Annotation> annos = ap.getFieldAnnotations(field);
+            for (Annotation anno : annos.values())
+                addAnnotation(anno, result);
+        }
+    }
+
+
+    private static void addAnnotation(Annotation anno, Set<String> result)
+    {
+        result.add(anno.getClassName());
+        for (Annotation.ParamValue param : anno.getParams().values())
+        {
+            if (param.getType() == Annotation.ParamType.ANNOTATION)
+                addAnnotation(param.asAnnotation(), result);
         }
     }
 }

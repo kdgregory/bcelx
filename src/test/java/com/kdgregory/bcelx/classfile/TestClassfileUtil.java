@@ -28,10 +28,7 @@ import net.sf.kdgcommons.bean.Introspection;
 import net.sf.kdgcommons.bean.IntrospectionCache;
 
 import com.kdgregory.bcelx.AbstractTest;
-import com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1;
-import com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1;
-import com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation;
-import com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation;
+import com.kdgregory.bcelx.SupportObjects;
 
 
 public class TestClassfileUtil
@@ -42,7 +39,8 @@ extends AbstractTest
 //  -- note that we rely on the public annotations from TestAnnotationParser
 //----------------------------------------------------------------------------
 
-    @RuntimeMarkerAnnotation
+    @SupportObjects.RuntimeMarkerAnnotation
+    @SupportObjects.AnnotationValuedAnnotation(@SupportObjects.StringValuedAnnotation("foo"))
     public static class ClassWithLotsOfReferences
     implements Serializable
     {
@@ -51,12 +49,11 @@ extends AbstractTest
         // no references; has to be pulled from Method
         protected Introspection foo;
 
-        // this will have a  CONSTANT_Fieldref_info
-        @FieldAnnotation1("foo")
+        @SupportObjects.FieldAnnotation1("foo")
         protected IntrospectionCache cache = null;
 
-        @StringValuedAnnotation("bar")
-        public long transform(@ParamAnnotation1("foo") String value)
+        @SupportObjects.NumericValuedAnnotation(12)
+        public long transform(@SupportObjects.ParamAnnotation1("foo") String value)
         throws ArithmeticException
         {
             return new BigInteger(value).longValue();
@@ -108,10 +105,11 @@ extends AbstractTest
         assertTrue("assigned field",        references.contains("net.sf.kdgcommons.bean.IntrospectionCache"));
         assertTrue("return value",          references.contains("java.lang.Number"));
         assertTrue("parameter",             references.contains("java.math.BigDecimal"));
-        assertTrue("class annotation",      references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation"));
-        assertTrue("method annotation",     references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation"));
-        assertTrue("field annotation",      references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1"));
-        assertTrue("parameter annotation",  references.contains("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1"));
+        assertTrue("class annotation",      references.contains("com.kdgregory.bcelx.SupportObjects.RuntimeMarkerAnnotation"));
+        assertTrue("method annotation",     references.contains("com.kdgregory.bcelx.SupportObjects.NumericValuedAnnotation"));
+        assertTrue("field annotation",      references.contains("com.kdgregory.bcelx.SupportObjects.FieldAnnotation1"));
+        assertTrue("parameter annotation",  references.contains("com.kdgregory.bcelx.SupportObjects.ParamAnnotation1"));
+        assertTrue("nested annotation",     references.contains("com.kdgregory.bcelx.SupportObjects.StringValuedAnnotation"));
 
         // regression test: some classes were not getting converted
         for (String name : references)

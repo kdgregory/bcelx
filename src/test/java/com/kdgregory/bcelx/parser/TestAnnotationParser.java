@@ -14,10 +14,6 @@
 
 package com.kdgregory.bcelx.parser;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,6 +32,7 @@ import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.Method;
 
 import com.kdgregory.bcelx.AbstractTest;
+import com.kdgregory.bcelx.SupportObjects;
 import com.kdgregory.bcelx.classfile.Annotation;
 
 
@@ -61,210 +58,83 @@ extends AbstractTest
 
 
 //----------------------------------------------------------------------------
-//  Some classes to be used as annotation values
+//  Annotated classes
 //----------------------------------------------------------------------------
 
-    public enum MyEnum { RED, GREEN, BLUE }
-
-    public static class MyLocalClass
-    { /* nothing here */ }
-
-
-//----------------------------------------------------------------------------
-//  The annotations that we'll be looking for
-//----------------------------------------------------------------------------
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.CLASS)
-    public @interface ClassMarkerAnnotation
-    {
-        // nothing here
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface RuntimeMarkerAnnotation
-    {
-        // nothing here either
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface StringValuedAnnotation
-    {
-        String value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface NumericValuedAnnotation
-    {
-        int value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface ClassValuedAnnotation
-    {
-        Class<?> value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface EnumValuedAnnotation
-    {
-        MyEnum value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface AnnotationValuedAnnotation
-    {
-        StringValuedAnnotation value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface StringArrayValuedAnnotation
-    {
-        String[] value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface IntArrayValuedAnnotation
-    {
-        int[] value();
-    }
-
-
-    @Target({ElementType.TYPE, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface MultiValueAnnotation
-    {
-        String name();
-        int quantity();
-    }
-
-
-    @Target(ElementType.PARAMETER)
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface ParamAnnotation1
-    {
-        String value();
-    }
-
-
-    @Target(ElementType.PARAMETER)
-    @Retention(RetentionPolicy.CLASS)
-    public @interface ParamAnnotation2
-    {
-        // nothing here
-    }
-
-
-    @Target(ElementType.FIELD)
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface FieldAnnotation1
-    {
-        String value();
-    }
-
-
-    @Target(ElementType.FIELD)
-    @Retention(RetentionPolicy.CLASS)
-    public @interface FieldAnnotation2
-    {
-        // nothing here
-    }
-
-
-//----------------------------------------------------------------------------
-//  And classes that use those annotations
-//----------------------------------------------------------------------------
-
-    @RuntimeMarkerAnnotation
-    @ClassMarkerAnnotation
+    @SupportObjects.RuntimeMarkerAnnotation
+    @SupportObjects.ClassMarkerAnnotation
     public static class MarkedClass
     { /* nothing here */ }
 
 
-    @StringValuedAnnotation("foo")
+    @SupportObjects.StringValuedAnnotation("foo")
     public static class DefaultStringAnnotatedClass
     { /* nothing here */ }
 
 
-    @NumericValuedAnnotation(12)
+    @SupportObjects.NumericValuedAnnotation(12)
     public static class DefaultNumericAnnotatedClass
     { /* nothing here */ }
 
 
-    @ClassValuedAnnotation(String.class)
+    @SupportObjects.ClassValuedAnnotation(String.class)
     public static class DefaultClassAnnotatedClass
     { /* nothing here */ }
 
 
-    @ClassValuedAnnotation(MyLocalClass.class)
+    @SupportObjects.ClassValuedAnnotation(SupportObjects.MyLocalClass.class)
     public static class DefaultInnerClassAnnotatedClass
     { /* nothing here */ }
 
 
-    @EnumValuedAnnotation(MyEnum.RED)
+    @SupportObjects.EnumValuedAnnotation(SupportObjects.MyEnum.RED)
     public static class DefaultEnumAnnotatedClass
     { /* nothing here */ }
 
 
-    @AnnotationValuedAnnotation(@StringValuedAnnotation("foo"))
+    @SupportObjects.AnnotationValuedAnnotation(@SupportObjects.StringValuedAnnotation("foo"))
     public static class DefaultAnnotationAnnotatedClass
     { /* nothing here */ }
 
 
-    @StringArrayValuedAnnotation({"foo", "bar"})
+    @SupportObjects.StringArrayValuedAnnotation({"foo", "bar"})
     public static class DefaultStringArrayAnnotatedClass
     { /* nothing here */ }
 
 
-    @IntArrayValuedAnnotation({1, 10, 100})
+    @SupportObjects.IntArrayValuedAnnotation({1, 10, 100})
     public static class DefaultNumericArrayAnnotatedClass
     { /* nothing here */ }
 
 
-    @MultiValueAnnotation(name="foo", quantity=12)
+    @SupportObjects.MultiValueAnnotation(name="foo", quantity=12)
     public static class TwoParamAnnotatedClass
     { /* nothing here */ }
 
 
-    @StringValuedAnnotation("foo")
-    @NumericValuedAnnotation(12)
+    @SupportObjects.StringValuedAnnotation("foo")
+    @SupportObjects.NumericValuedAnnotation(12)
     public static class MultiplyAnnotatedClass
     { /* nothing here */ }
 
 
     public static class ClassWithAnnotatedMethods
     {
-        @StringValuedAnnotation("foo")
+        @SupportObjects.StringValuedAnnotation("foo")
         public void myMethod() { /* no body */ }
 
-        @StringValuedAnnotation("bar")
-        @EnumValuedAnnotation(MyEnum.BLUE)
+        @SupportObjects.StringValuedAnnotation("bar")
+        @SupportObjects.EnumValuedAnnotation(SupportObjects.MyEnum.BLUE)
         public void myOtherMethod() { /* no body */ }
 
-        @MultiValueAnnotation(name="foo", quantity=12)
+        @SupportObjects.MultiValueAnnotation(name="foo", quantity=12)
         public void aThirdMethod() { /* no body */ }
 
-        @MultiValueAnnotation(name="foo", quantity=14)
+        @SupportObjects.MultiValueAnnotation(name="foo", quantity=14)
         public void andAFourth() { /* no body */ }
 
         @SuppressWarnings("unused")
-        @NumericValuedAnnotation(12)
+        @SupportObjects.NumericValuedAnnotation(12)
         private void privateMethod() { /* no body */ }
     }
 
@@ -272,8 +142,8 @@ extends AbstractTest
     public static class ClassWithAnnotatedParameters
     {
         public String foo(
-                @ParamAnnotation1("argle") String argle,
-                @ParamAnnotation1("bargle") @ParamAnnotation2 String bargle,
+                @SupportObjects.ParamAnnotation1("argle") String argle,
+                @SupportObjects.ParamAnnotation1("bargle") @SupportObjects.ParamAnnotation2 String bargle,
                 String wargle)
         {
             return argle + bargle + wargle;
@@ -283,10 +153,10 @@ extends AbstractTest
 
     public static class ClassWithAnnotatedFields
     {
-        @FieldAnnotation1("foo")
+        @SupportObjects.FieldAnnotation1("foo")
         protected String foo;
 
-        @FieldAnnotation1("bar") @FieldAnnotation2
+        @SupportObjects.FieldAnnotation1("bar") @SupportObjects.FieldAnnotation2
         protected int bar;
 
         protected String baz;
@@ -313,9 +183,9 @@ extends AbstractTest
             anno1Values.add(anno.toString());
         }
         assertTrue("first class annotation",
-                   anno1Values.contains("@TestAnnotationParser.RuntimeMarkerAnnotation"));
+                   anno1Values.contains("@SupportObjects.RuntimeMarkerAnnotation"));
         assertTrue("second class annotation",
-                   anno1Values.contains("@TestAnnotationParser.ClassMarkerAnnotation"));
+                   anno1Values.contains("@SupportObjects.ClassMarkerAnnotation"));
 
 
         Collection<Annotation> annos2 = ap.getClassVisibleAnnotations();
@@ -323,10 +193,10 @@ extends AbstractTest
 
         Annotation anno2 = annos2.iterator().next();
         assertEquals("value of runtime visible annotation",
-                     "@TestAnnotationParser.RuntimeMarkerAnnotation",
+                     "@SupportObjects.RuntimeMarkerAnnotation",
                      anno2.toString());
         assertEquals("fq classname of runtime visible annotation",
-                     "com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation",
+                     "com.kdgregory.bcelx.SupportObjects.RuntimeMarkerAnnotation",
                      anno2.getClassName());
         assertEquals("count of parameters",
                      0, anno2.getParams().size());
@@ -337,21 +207,21 @@ extends AbstractTest
 
         Annotation anno3 = annos3.iterator().next();
         assertEquals("value of runtime invisible annotation",
-                     "@TestAnnotationParser.ClassMarkerAnnotation",
+                     "@SupportObjects.ClassMarkerAnnotation",
                      anno3.toString());
         assertEquals("fq classname of runtime visible annotation",
-                     "com.kdgregory.bcelx.parser.TestAnnotationParser.ClassMarkerAnnotation",
+                     "com.kdgregory.bcelx.SupportObjects.ClassMarkerAnnotation",
                      anno3.getClassName());
         assertEquals("count of parameters",
                      0, anno3.getParams().size());
 
 
         assertEquals("retrieve visible annotation by name",
-                     "@TestAnnotationParser.RuntimeMarkerAnnotation",
-                     ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.RuntimeMarkerAnnotation").toString());
+                     "@SupportObjects.RuntimeMarkerAnnotation",
+                     ap.getClassAnnotation("com.kdgregory.bcelx.SupportObjects.RuntimeMarkerAnnotation").toString());
         assertEquals("retrieve invisible annotation by name",
-                     "@TestAnnotationParser.ClassMarkerAnnotation",
-                     ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.ClassMarkerAnnotation").toString());
+                     "@SupportObjects.ClassMarkerAnnotation",
+                     ap.getClassAnnotation("com.kdgregory.bcelx.SupportObjects.ClassMarkerAnnotation").toString());
     }
 
 
@@ -365,7 +235,7 @@ extends AbstractTest
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.StringValuedAnnotation(\"foo\")",
+                     "@SupportObjects.StringValuedAnnotation(\"foo\")",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -392,7 +262,7 @@ extends AbstractTest
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.NumericValuedAnnotation(12)",
+                     "@SupportObjects.NumericValuedAnnotation(12)",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -421,10 +291,10 @@ extends AbstractTest
 
         Annotation anno1 = annos1.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.ClassValuedAnnotation(java.lang.String.class)",
+                     "@SupportObjects.ClassValuedAnnotation(java.lang.String.class)",
                      anno1.toString());
         assertEquals("simpleName of annotation",
-                     "@TestAnnotationParser.ClassValuedAnnotation",
+                     "@SupportObjects.ClassValuedAnnotation",
                      anno1.getName());
         assertEquals("count of parameters",
                      1,
@@ -451,7 +321,7 @@ extends AbstractTest
 
         Annotation anno2 = annos2.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.ClassValuedAnnotation(com.kdgregory.bcelx.parser.TestAnnotationParser.MyLocalClass.class)",
+                     "@SupportObjects.ClassValuedAnnotation(com.kdgregory.bcelx.SupportObjects.MyLocalClass.class)",
                      anno2.toString());
         assertEquals("count of parameters",
                      1,
@@ -459,14 +329,14 @@ extends AbstractTest
 
         Annotation.ParamValue anno2Value = anno2.getValue();
         assertEquals("value as class",
-                     MyLocalClass.class,
+                     SupportObjects.MyLocalClass.class,
                      anno2Value.asClass());
         assertTrue("equality to correct value",
-                    anno2Value.valueEquals(MyLocalClass.class));
+                    anno2Value.valueEquals(SupportObjects.MyLocalClass.class));
         assertFalse("equality to incorrect value",
                     anno2Value.valueEquals(Number.class));
         assertTrue("equality to correct value, as String",
-                    anno2Value.valueEquals("com.kdgregory.bcelx.parser.TestAnnotationParser.MyLocalClass.class"));
+                    anno2Value.valueEquals("com.kdgregory.bcelx.SupportObjects.MyLocalClass.class"));
         assertFalse("equality to incorrect value, as String",
                     anno2Value.valueEquals("java.lang.String.class"));
     }
@@ -482,7 +352,7 @@ extends AbstractTest
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.EnumValuedAnnotation(com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.RED)",
+                     "@SupportObjects.EnumValuedAnnotation(com.kdgregory.bcelx.SupportObjects.MyEnum.RED)",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -490,16 +360,16 @@ extends AbstractTest
 
         Annotation.ParamValue annoValue = anno.getValue();
         assertEquals("value as enum",
-                     MyEnum.RED,
+                     SupportObjects.MyEnum.RED,
                      annoValue.asEnum());
         assertTrue("equality to correct value",
-                    annoValue.valueEquals(MyEnum.RED));
+                    annoValue.valueEquals(SupportObjects.MyEnum.RED));
         assertFalse("equality to incorrect value",
-                    annoValue.valueEquals(MyEnum.BLUE));
+                    annoValue.valueEquals(SupportObjects.MyEnum.BLUE));
         assertTrue("equality to correct value, as String",
-                    annoValue.valueEquals("com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.RED"));
+                    annoValue.valueEquals("com.kdgregory.bcelx.SupportObjects.MyEnum.RED"));
         assertFalse("equality to incorrect value, as String",
-                    annoValue.valueEquals("com.kdgregory.bcelx.parser.TestAnnotationParser.MyEnum.BLUE"));
+                    annoValue.valueEquals("com.kdgregory.bcelx.SupportObjects.MyEnum.BLUE"));
     }
 
 
@@ -513,7 +383,7 @@ extends AbstractTest
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.AnnotationValuedAnnotation(@TestAnnotationParser.StringValuedAnnotation(\"foo\"))",
+                     "@SupportObjects.AnnotationValuedAnnotation(@SupportObjects.StringValuedAnnotation(\"foo\"))",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -521,11 +391,11 @@ extends AbstractTest
 
         Annotation.ParamValue annoValue = anno.getValue();
         assertTrue("value/string equality",
-                   annoValue.valueEquals("@TestAnnotationParser.StringValuedAnnotation(\"foo\")"));
+                   annoValue.valueEquals("@SupportObjects.StringValuedAnnotation(\"foo\")"));
 
         Annotation nestedAnno = annoValue.asAnnotation();
         assertEquals("value classname",
-                     "com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation",
+                     "com.kdgregory.bcelx.SupportObjects.StringValuedAnnotation",
                      nestedAnno.getClassName());
 
 
@@ -546,7 +416,7 @@ extends AbstractTest
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.StringArrayValuedAnnotation({\"foo\",\"bar\"})",
+                     "@SupportObjects.StringArrayValuedAnnotation({\"foo\",\"bar\"})",
                      anno.toString());
         assertEquals("count of parameters",
                      1,
@@ -575,7 +445,7 @@ extends AbstractTest
 
         Annotation anno = annos.iterator().next();
         assertEquals("string value of annotation",
-                     "@TestAnnotationParser.MultiValueAnnotation(name=\"foo\", quantity=12)",
+                     "@SupportObjects.MultiValueAnnotation(name=\"foo\", quantity=12)",
                      anno.toString());
         assertEquals("count of parameters",
                      2,
@@ -598,13 +468,13 @@ extends AbstractTest
         Iterator<Annotation> annoItx = annos.iterator();
         assertEquals("count of runtime visible annotations", 2, annos.size());
         assertEquals("string value of annotation 0",
-                     "@TestAnnotationParser.StringValuedAnnotation(\"foo\")",
+                     "@SupportObjects.StringValuedAnnotation(\"foo\")",
                      annoItx.next().toString());
         assertEquals("string value of annotation 1",
-                     "@TestAnnotationParser.NumericValuedAnnotation(12)",
+                     "@SupportObjects.NumericValuedAnnotation(12)",
                      annoItx.next().toString());
 
-        Annotation anno = ap.getClassAnnotation("com.kdgregory.bcelx.parser.TestAnnotationParser.NumericValuedAnnotation");
+        Annotation anno = ap.getClassAnnotation("com.kdgregory.bcelx.SupportObjects.NumericValuedAnnotation");
         assertEquals("value of explicitly retrieved annotation", 12, anno.getValue().asScalar());
     }
 
@@ -614,7 +484,7 @@ extends AbstractTest
     {
         AnnotationParser ap = new AnnotationParser(loadNestedClass(ClassWithAnnotatedMethods.class));
 
-        Collection<Method> methods1 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation");
+        Collection<Method> methods1 = ap.getAnnotatedMethods("com.kdgregory.bcelx.SupportObjects.StringValuedAnnotation");
         assertEquals("number of annotated methods", 2, methods1.size());
 
         // can't guarantee order of return, so we'll extract name and validate
@@ -625,7 +495,7 @@ extends AbstractTest
         assertTrue("annotated methods includes myOtherMethod()", methodNames.contains("myOtherMethod"));
 
 
-        Collection<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.NumericValuedAnnotation");
+        Collection<Method> methods2 = ap.getAnnotatedMethods("com.kdgregory.bcelx.SupportObjects.NumericValuedAnnotation");
         assertEquals("number of annotated private methods", 1, methods2.size());
         assertEquals("name of annotated private method", "privateMethod", methods2.iterator().next().getName());
     }
@@ -641,7 +511,7 @@ extends AbstractTest
         Map<String,Object> filter1 = new HashMap<String,Object>();
         filter1.put("value", "foo");
         Collection<Method> methods1 = ap.getAnnotatedMethods(
-                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.StringValuedAnnotation",
+                                        "com.kdgregory.bcelx.SupportObjects.StringValuedAnnotation",
                                         filter1);
         assertEquals("count of methods, string(foo)", 1, methods1.size());
         assertEquals("name of method, string(foo)",   "myMethod", methods1.iterator().next().getName());
@@ -652,7 +522,7 @@ extends AbstractTest
         filter2.put("name", "foo");
         filter2.put("quantity", Integer.valueOf(12));
         Collection<Method> methods2 = ap.getAnnotatedMethods(
-                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.MultiValueAnnotation",
+                                        "com.kdgregory.bcelx.SupportObjects.MultiValueAnnotation",
                                         filter2);
         assertEquals("count of methods, (foo,12)", 1, methods2.size());
         assertEquals("name of method, (foo,12)",   "aThirdMethod", methods2.iterator().next().getName());
@@ -662,7 +532,7 @@ extends AbstractTest
         Map<String,Object> filter3 = new HashMap<String,Object>();
         filter3.put("name", "foo");
         Collection<Method> methods3 = ap.getAnnotatedMethods(
-                                        "com.kdgregory.bcelx.parser.TestAnnotationParser.MultiValueAnnotation",
+                                        "com.kdgregory.bcelx.SupportObjects.MultiValueAnnotation",
                                         filter3);
 
         // we have no guarantee for return order, so need to extract names
@@ -683,7 +553,7 @@ extends AbstractTest
 
         Map<String,Object> filter = new HashMap<String,Object>();
         filter.put("argle", "bargle");
-        Collection<Method> methods = ap.getAnnotatedMethods("com.kdgregory.bcelx.parser.TestAnnotationParser.DefaultStringAnnotation", filter);
+        Collection<Method> methods = ap.getAnnotatedMethods("com.kdgregory.bcelx.SupportObjects.DefaultStringAnnotation", filter);
         assertEquals(0, methods.size());
     }
 
@@ -698,18 +568,18 @@ extends AbstractTest
 
         Collection<Annotation> annos = ap.getMethodAnnotations(method);
         Iterator<Annotation> annoItx = annos.iterator();
-        assertEquals("number of annotations", 2, annos.size());
-        assertEquals("annotation param #1",   "bar",       annoItx.next().getValue().asScalar());
-        assertEquals("annotation param #2",   MyEnum.BLUE, annoItx.next().getValue().asEnum());
+        assertEquals("number of annotations", 2,                          annos.size());
+        assertEquals("annotation param #1",   "bar",                      annoItx.next().getValue().asScalar());
+        assertEquals("annotation param #2",   SupportObjects.MyEnum.BLUE, annoItx.next().getValue().asEnum());
 
         // and that we can get a particular named annotation
 
-        Annotation anno1 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.EnumValuedAnnotation");
-        assertEquals("get by class, param", MyEnum.BLUE, anno1.getValue().asEnum());
+        Annotation anno1 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.SupportObjects.EnumValuedAnnotation");
+        assertEquals("get by class, param", SupportObjects.MyEnum.BLUE, anno1.getValue().asEnum());
 
         // and that we don't blow up if the annotation doesn't exist
 
-        Annotation anno2 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.parser.TestAnnotationParser.NoSuchAnnotation");
+        Annotation anno2 = ap.getMethodAnnotation(method, "com.kdgregory.bcelx.SupportObjects.NoSuchAnnotation");
         assertNull("get by nonexistent class", anno2);
 
         // and finally, that we don't blow up if the method itself doesn't exist
@@ -732,21 +602,21 @@ extends AbstractTest
         Map<String,Annotation> param1 = annos.get(0);
         assertEquals("param 1 #/annotations",   1, param1.size());
         assertEquals("param 1 anno 1 value",    "argle",
-                                                param1.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1").getValue().asScalar());
+                                                param1.get("com.kdgregory.bcelx.SupportObjects.ParamAnnotation1").getValue().asScalar());
 
         Map<String,Annotation> param2 = annos.get(1);
         assertEquals("param 2 #/annotations",   2, param2.size());
         assertEquals("param 2 anno 1 value",    "bargle",
-                                                param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1").getValue().asScalar());
-        assertNotNull("param 2 anno 2 exists ", param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation2"));
+                                                param2.get("com.kdgregory.bcelx.SupportObjects.ParamAnnotation1").getValue().asScalar());
+        assertNotNull("param 2 anno 2 exists ", param2.get("com.kdgregory.bcelx.SupportObjects.ParamAnnotation2"));
 
         Map<String,Annotation> param3 = annos.get(2);
         assertEquals("param 3 #/annotations",   0, param3.size());
 
         // check the explicit retrieval method
 
-        Annotation param2anno1 = ap.getParameterAnnotation(method, 1, "com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1");
-        assertSame("retrieved annotation by position/class", param2.get("com.kdgregory.bcelx.parser.TestAnnotationParser.ParamAnnotation1"), param2anno1);
+        Annotation param2anno1 = ap.getParameterAnnotation(method, 1, "com.kdgregory.bcelx.SupportObjects.ParamAnnotation1");
+        assertSame("retrieved annotation by position/class", param2.get("com.kdgregory.bcelx.SupportObjects.ParamAnnotation1"), param2anno1);
     }
 
 
@@ -762,14 +632,14 @@ extends AbstractTest
             {
                 assertEquals("field 'foo', #/annotations", 1, annos.size());
                 assertEquals("field 'foo', anno 1 value",  "foo",
-                                                           annos.get("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1").getValue().asScalar());
+                                                           annos.get("com.kdgregory.bcelx.SupportObjects.FieldAnnotation1").getValue().asScalar());
             }
             else if (field.getName().equals("bar"))
             {
                 assertEquals("field 'bar', #/annotations",  2, annos.size());
                 assertEquals("field 'foo', anno 1 value",   "bar",
-                                                            annos.get("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation1").getValue().asScalar());
-                assertNotNull("field 'foo', anno 2 exists", annos.get("com.kdgregory.bcelx.parser.TestAnnotationParser.FieldAnnotation2"));
+                                                            annos.get("com.kdgregory.bcelx.SupportObjects.FieldAnnotation1").getValue().asScalar());
+                assertNotNull("field 'foo', anno 2 exists", annos.get("com.kdgregory.bcelx.SupportObjects.FieldAnnotation2"));
             }
             else if (field.getName().equals("baz"))
             {
