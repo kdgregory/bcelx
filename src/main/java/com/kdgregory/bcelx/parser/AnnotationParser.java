@@ -271,9 +271,9 @@ public class AnnotationParser
 
     /**
      *  Returns the annotations for a method's parameters. The result is a list, each
-     *  element of which corresponds to a parameter by position; if the method has no
+     *  element of which corresponds to a parameter by position. If the method has no
      *  parameters, this list will be empty. Each element in the returned list is a
-     *  list of the annotations for that parameter.
+     *  map of the annotations for that parameter, keyed by the annotation class.
      */
     public List<Map<String,Annotation>> getParameterAnnotatons(Method method)
     {
