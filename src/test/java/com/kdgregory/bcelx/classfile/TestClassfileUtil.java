@@ -139,16 +139,21 @@ extends AbstractTest
         JavaClass testClass = loadNestedClass(SimpleClass.class);
 
         Method m1 = ClassfileUtil.getMethod(testClass, "foo");
-        assertNotNull("method without params", m1);
+        assertEquals("method without params", "foo", m1.getName());
+        assertEquals("method without params", "()V", m1.getSignature());
 
-        Method m2 = ClassfileUtil.getMethod(testClass, "baz", String.class);
-        assertEquals("overloaded method, variant 1", "(Ljava/lang/String;)Ljava/lang/String;", m2.getSignature());
+        Method m2 = ClassfileUtil.getMethod(testClass, "bar", Integer.class);
+        assertEquals("method with params", "bar", m2.getName());
+        assertEquals("method with params", "(Ljava/lang/Integer;)I", m2.getSignature());
 
-        Method m3 = ClassfileUtil.getMethod(testClass, "baz", Integer.class);
-        assertEquals("overloaded method, variant 2", "(Ljava/lang/Integer;)Ljava/lang/String;", m3.getSignature());
+        Method m3 = ClassfileUtil.getMethod(testClass, "baz", String.class);
+        assertEquals("overloaded method, variant 1", "(Ljava/lang/String;)Ljava/lang/String;", m3.getSignature());
 
-        Method m4 = ClassfileUtil.getMethod(testClass, "baz", Integer.TYPE);
-        assertEquals("overloaded method, variant 2", "(I)Ljava/lang/String;", m4.getSignature());
+        Method m4 = ClassfileUtil.getMethod(testClass, "baz", Integer.class);
+        assertEquals("overloaded method, variant 2", "(Ljava/lang/Integer;)Ljava/lang/String;", m4.getSignature());
+
+        Method m5 = ClassfileUtil.getMethod(testClass, "baz", Integer.TYPE);
+        assertEquals("overloaded method, variant 2", "(I)Ljava/lang/String;", m5.getSignature());
     }
 
 
