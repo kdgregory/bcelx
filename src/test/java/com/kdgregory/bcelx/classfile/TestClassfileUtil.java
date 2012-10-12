@@ -23,6 +23,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.Method;
 
 import net.sf.kdgcommons.bean.Introspection;
 import net.sf.kdgcommons.bean.IntrospectionCache;
@@ -34,6 +35,46 @@ import com.kdgregory.bcelx.SupportObjects;
 public class TestClassfileUtil
 extends AbstractTest
 {
+//----------------------------------------------------------------------------
+//  A basic test class that has fields and methods
+//----------------------------------------------------------------------------
+
+    public static class SimpleClass
+    {
+        private String field1;
+        protected int field2;
+
+        public void foo()
+        {
+            field2 = 12;
+        }
+
+        public int bar(Integer val)
+        {
+            field2 = val.intValue();
+            return field2;
+        }
+
+        public String baz(String val)
+        {
+            field1 = String.valueOf(val);
+            return field1;
+        }
+
+        public String baz(Integer val)
+        {
+            field1 = String.valueOf(val);
+            return field1;
+        }
+
+        public String baz(int val)
+        {
+            field1 = String.valueOf(val);
+            return field1;
+        }
+    }
+
+
 //----------------------------------------------------------------------------
 //  A test class for the getReferencedClasses() test
 //  -- note that we rely on the public annotations from TestAnnotationParser
@@ -91,6 +132,25 @@ extends AbstractTest
 //----------------------------------------------------------------------------
 //  Test Cases
 //----------------------------------------------------------------------------
+
+    @Test
+    public void testGetMethod() throws Exception
+    {
+        JavaClass testClass = loadNestedClass(SimpleClass.class);
+
+        Method m1 = ClassfileUtil.getMethod(testClass, "foo");
+        assertNotNull("method without params", m1);
+
+        Method m2 = ClassfileUtil.getMethod(testClass, "baz", String.class);
+        assertEquals("overloaded method, variant 1", "(Ljava/lang/String;)Ljava/lang/String;", m2.getSignature());
+
+        Method m3 = ClassfileUtil.getMethod(testClass, "baz", Integer.class);
+        assertEquals("overloaded method, variant 2", "(Ljava/lang/Integer;)Ljava/lang/String;", m3.getSignature());
+
+        Method m4 = ClassfileUtil.getMethod(testClass, "baz", Integer.TYPE);
+        assertEquals("overloaded method, variant 2", "(I)Ljava/lang/String;", m4.getSignature());
+    }
+
 
     @Test
     public void testExtractReferencedClasses() throws Exception

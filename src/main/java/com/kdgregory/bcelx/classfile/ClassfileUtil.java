@@ -37,6 +37,25 @@ import com.kdgregory.bcelx.parser.AnnotationParser;
 public class ClassfileUtil
 {
     /**
+     *  Returns the method with the specified name and parameter types.
+     */
+    public static Method getMethod(JavaClass klass, String methodName, Class<?>... paramTypes)
+    {
+        for (Method method : klass.getMethods())
+        {
+            if (! method.getName().equals(methodName))
+                continue;
+
+            Type[] methodParams = method.getArgumentTypes();
+            if (isEqual(methodParams, paramTypes))
+                return method;
+        }
+        return null;
+    }
+
+
+
+    /**
      *  Returns all classes referenced by the given class. This traverses the constant
      *  pool to find direct references, and picks apart the references for fields,
      *  methods, and annotations.
@@ -55,7 +74,7 @@ public class ClassfileUtil
 
 
 //----------------------------------------------------------------------------
-//  Internals
+//  Internals -- dependency check
 //----------------------------------------------------------------------------
 
     // This method is somewhat confusingly named: it does convert a signature,
@@ -152,5 +171,26 @@ public class ClassfileUtil
             if (param.getType() == Annotation.ParamType.ANNOTATION)
                 addAnnotation(param.asAnnotation(), result);
         }
+    }
+
+
+//----------------------------------------------------------------------------
+//  Internals -- other
+//----------------------------------------------------------------------------
+
+    private static boolean isEqual(Type[] bcelTypes, Class<?>[] javaTypes)
+    {
+        if (bcelTypes.length != javaTypes.length)
+            return false;
+
+        for (int ii = 0 ; ii < bcelTypes.length ; ii++)
+        {
+            String bcelType = bcelTypes[ii].toString();
+            String javaType = javaTypes[ii].getName();
+            if (!javaType.equals(bcelType))
+                return false;
+        }
+
+        return true;
     }
 }
