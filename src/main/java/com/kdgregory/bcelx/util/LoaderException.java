@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.kdgregory.bcelx.classfile;
+package com.kdgregory.bcelx.util;
 
 
 /**
- *  This exception may be thrown by any of the methods in this package. It is a
- *  runtime exception, generally indicating a bug in the calling code. It may
- *  or may not wrap an underlying cause.
+ *  This exception is thrown when a {@link ParsedClassLoader} is unable to load
+ *  a class. Instances will usually have an underlying cause, which will usually
+ *  be <code>IOException</code>.
  */
-public class ClassfileException
+public class LoaderException
 extends RuntimeException
 {
     private static final long serialVersionUID = 1L;
 
-    public ClassfileException(String message)
+    public LoaderException(String message)
     {
         super(message);
     }
 
-    public ClassfileException(String message, Throwable cause)
+    public LoaderException(String message, Throwable cause)
     {
         super(message, cause);
     }
