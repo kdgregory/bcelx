@@ -25,7 +25,7 @@ import org.apache.bcel.classfile.JavaClass;
  *  The interface exists because the <code>org.apache.bcel.util.Repository</code>
  *  provides more methods than I want, since this library is (currently) meant
  *  for read-only usage. If you already have a <code>Repository</code>, you can
- *  wrap it with a {@link ClassNotFoundException}.
+ *  wrap it with a {@link BcelRepositoryLoader}.
  *  <p>
  *  Implementations are permitted to cache parsed classes.
  */

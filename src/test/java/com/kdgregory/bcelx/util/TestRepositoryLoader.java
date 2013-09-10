@@ -27,7 +27,7 @@ public class TestRepositoryLoader
     public void testHappyPath() throws Exception
     {
         ClassLoaderRepository repo = new ClassLoaderRepository(this.getClass().getClassLoader());
-        RepositoryLoader loader = new RepositoryLoader(repo);
+        BcelRepositoryLoader loader = new BcelRepositoryLoader(repo);
 
         JavaClass parsedClass = loader.loadParsedClass(this.getClass().getName());
         assertEquals("parsed class: name", this.getClass().getName(), parsedClass.getClassName());
@@ -38,7 +38,7 @@ public class TestRepositoryLoader
     public void testSadPath() throws Exception
     {
         ClassLoaderRepository repo = new ClassLoaderRepository(this.getClass().getClassLoader());
-        RepositoryLoader loader = new RepositoryLoader(repo);
+        BcelRepositoryLoader loader = new BcelRepositoryLoader(repo);
         loader.loadParsedClass("foo.bar.baz");
     }
 }

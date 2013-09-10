@@ -21,13 +21,13 @@ import org.apache.bcel.util.Repository;
 /**
  *  An adaptor class that wraps a BCEL <code>Repository</code> object.
  */
-public class RepositoryLoader
+public class BcelRepositoryLoader
 implements ParsedClassLoader
 {
     private Repository repo;
 
 
-    public RepositoryLoader(Repository repo)
+    public BcelRepositoryLoader(Repository repo)
     {
         this.repo = repo;
     }
