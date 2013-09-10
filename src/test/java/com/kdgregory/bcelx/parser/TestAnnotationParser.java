@@ -133,7 +133,6 @@ extends AbstractTest
         @SupportObjects.MultiValueAnnotation(name="foo", quantity=14)
         public void andAFourth() { /* no body */ }
 
-        @SuppressWarnings("unused")
         @SupportObjects.NumericValuedAnnotation(12)
         private void privateMethod() { /* no body */ }
     }
@@ -218,10 +217,10 @@ extends AbstractTest
 
         assertEquals("retrieve visible annotation by name",
                      "@SupportObjects.RuntimeMarkerAnnotation",
-                     ap.getClassAnnotation("com.kdgregory.bcelx.SupportObjects.RuntimeMarkerAnnotation").toString());
+                     ap.getClassAnnotation(SupportObjects.RuntimeMarkerAnnotation.class.getName()).toString());
         assertEquals("retrieve invisible annotation by name",
                      "@SupportObjects.ClassMarkerAnnotation",
-                     ap.getClassAnnotation("com.kdgregory.bcelx.SupportObjects.ClassMarkerAnnotation").toString());
+                     ap.getClassAnnotation(SupportObjects.ClassMarkerAnnotation.class.getName()).toString());
     }
 
 

@@ -168,6 +168,7 @@ public class AnnotationParser
     public Annotation getClassAnnotation(String annoClass)
     {
         lazyBuildClassAnnotationMap();
+        annoClass = annoClass.replace('$', '.');
         return classAnnotations.get(annoClass);
     }
 
